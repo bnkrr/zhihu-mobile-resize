@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎夜间模式 (Zhihu Night Mode)
 // @namespace    https://github.com/bnkrr/zhihu-mobile-resize/night-mode
-// @version      1.0.2
+// @version      1.0.3
 // @description  在知乎网页中启用内置的深色主题，可与知乎手机屏幕适配脚本独立使用。
 // @author       bnkrr
 // @homepageURL  https://github.com/bnkrr/zhihu-mobile-resize
@@ -41,6 +41,7 @@
         }
 
         html[data-theme='dark'] .Card,
+        html[data-theme='dark'] .AppHeader.AppHeader,
         html[data-theme='dark'] .HotItem,
         html[data-theme='dark'] .Modal-content,
         html[data-theme='dark'] .Popover-content,
@@ -49,6 +50,44 @@
         html[data-theme='dark'] .ProfileHeader,
         html[data-theme='dark'] .Post-NormalMain {
             background-color: var(--zmr-surface) !important;
+        }
+
+        html[data-theme='dark'] .AppHeader.AppHeader {
+            color: var(--zmr-text) !important;
+            transition: none !important;
+        }
+
+        html[data-theme='dark'] .AppHeader a,
+        html[data-theme='dark'] .AppHeader button {
+            color: var(--zmr-text-secondary) !important;
+        }
+
+        html[data-theme='dark'] .AppHeader a[aria-label='知乎'] {
+            color: var(--zmr-accent) !important;
+        }
+
+        html[data-theme='dark'] .AppHeader .SearchBar-input.SearchBar-input,
+        html[data-theme='dark'] .AppHeader .Input-wrapper.Input-wrapper,
+        html[data-theme='dark'] .Select-button.Select-button {
+            background-color: var(--zmr-surface-raised) !important;
+            color: var(--zmr-text) !important;
+            border-color: var(--zmr-border) !important;
+            transition: none !important;
+        }
+
+        html[data-theme='dark'] .AppHeader input {
+            color: var(--zmr-text) !important;
+        }
+
+        html[data-theme='dark'] .PlaceHolder-inner.PlaceHolder-inner {
+            background-color: var(--zmr-surface) !important;
+            color: var(--zmr-text-muted) !important;
+        }
+
+        html[data-theme='dark'] .ProfileMain-header button:has(.ZDI--Search24) {
+            background-color: var(--zmr-surface-raised) !important;
+            color: var(--zmr-text-secondary) !important;
+            transition: none !important;
         }
 
         /* Zhihu's narrow hot-list DOM currently keeps white card backgrounds in dark mode. */
@@ -67,6 +106,11 @@
 
         html[data-theme='dark'] body.Body--Mobile .Question-mainEntity > div > div:first-child {
             background-color: var(--zmr-surface) !important;
+        }
+
+        html[data-theme='dark'] .QuestionRichText,
+        html[data-theme='dark'] .QuestionRichText * {
+            color: var(--zmr-text) !important;
         }
 
         /* Narrow topic/question pages use an unthemed fixed "open app" header. */
@@ -97,6 +141,17 @@
         html[data-theme='dark'] .Modal-content:has(.CommentContent) > div > :first-child,
         html[data-theme='dark'] .Modal-content:has(.CommentContent) > div > :first-child * {
             color: var(--zmr-text-secondary) !important;
+        }
+
+        html[data-theme='dark'] .Modal-content:has(.CommentContent) > div > :nth-child(2) > :nth-child(2),
+        html[data-theme='dark'] .Modal-content:has(.CommentContent) > div > :nth-child(2) > :nth-child(2) * {
+            color: var(--zmr-text-secondary) !important;
+        }
+
+        /* Reply-thread loading cards have no semantic class; target their empty avatar + SVG skeleton. */
+        html[data-theme='dark'] .Modal-content:has(.CommentContent) div:has(> div:empty + svg[viewBox]) {
+            background-color: var(--zmr-surface) !important;
+            color: var(--zmr-text-muted) !important;
         }
 
         html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) .CommentContent,
