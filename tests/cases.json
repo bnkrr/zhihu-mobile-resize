@@ -1,0 +1,33 @@
+{
+  "pages": [
+    {
+      "name": "hot",
+      "url": "https://www.zhihu.com/hot",
+      "requiredAny": [".HotItem", ".HotList"]
+    },
+    {
+      "name": "question",
+      "url": "https://www.zhihu.com/question/2061024906939310932",
+      "requiredAny": [".QuestionHeader", ".Question-main"]
+    },
+    {
+      "name": "profile",
+      "url": "https://www.zhihu.com/people/excited-vczh",
+      "requiredAny": [".ProfileHeader", ".Profile-main"]
+    },
+    {
+      "name": "search",
+      "url": "https://www.zhihu.com/search?type=content&q=%E5%A4%9C%E9%97%B4%E6%A8%A1%E5%BC%8F",
+      "requiredAny": [".Search-container", ".SearchMain"]
+    },
+    {
+      "name": "topic",
+      "url": "https://www.zhihu.com/topic/19550517/hot",
+      "requiredAny": [".TopicMetaCard", ".TopicFeedList", ".Topic-bar"]
+    }
+  ],
+  "comments": {
+    "name": "comments",
+    "url": "https://www.zhihu.com/question/2061024906939310932"
+  }
+}
