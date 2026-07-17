@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎夜间模式 (Zhihu Night Mode)
 // @namespace    https://github.com/bnkrr/zhihu-mobile-resize/night-mode
-// @version      1.0.1
+// @version      1.0.2
 // @description  在知乎网页中启用内置的深色主题，可与知乎手机屏幕适配脚本独立使用。
 // @author       bnkrr
 // @homepageURL  https://github.com/bnkrr/zhihu-mobile-resize
@@ -80,67 +80,76 @@
         }
 
         /* The current comments UI keeps several light-theme literals after data-theme changes. */
-        html[data-theme='dark'] .Comments-container,
-        html[data-theme='dark'] .Modal-content .Comments-container {
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) {
             background-color: var(--zmr-surface) !important;
             color: var(--zmr-text) !important;
         }
 
-        html[data-theme='dark'] .Comments-container *:has(> .CommentContent) {
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) *:has(> .CommentContent) {
             background-color: var(--zmr-surface) !important;
         }
 
-        html[data-theme='dark'] .Comments-container .CommentContent,
-        html[data-theme='dark'] .Comments-container .CommentContent p,
-        html[data-theme='dark'] .Comments-container .CommentContent span {
+        /* Expanded reply threads use a separate modal with extra wrappers around comments. */
+        html[data-theme='dark'] .Modal-content:has(.CommentContent) *:has(.CommentContent) {
+            background-color: var(--zmr-surface) !important;
+        }
+
+        html[data-theme='dark'] .Modal-content:has(.CommentContent) > div > :first-child,
+        html[data-theme='dark'] .Modal-content:has(.CommentContent) > div > :first-child * {
+            color: var(--zmr-text-secondary) !important;
+        }
+
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) .CommentContent,
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) .CommentContent p,
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) .CommentContent span {
             color: var(--zmr-text) !important;
         }
 
-        html[data-theme='dark'] .Comments-container .CommentContent a {
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) .CommentContent a {
             color: var(--zmr-accent) !important;
         }
 
-        html[data-theme='dark'] .Comments-container *:has(> .CommentContent) > :first-child,
-        html[data-theme='dark'] .Comments-container *:has(> .CommentContent) > :first-child * {
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) *:has(> .CommentContent) > :first-child,
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) *:has(> .CommentContent) > :first-child * {
             color: var(--zmr-text-secondary) !important;
         }
 
         /* Comment count/sort header and the persistent/inline editors. */
-        html[data-theme='dark'] .Comments-container > div > div:has(> div + div .CommentContent) > div:has(+ div .CommentContent),
-        html[data-theme='dark'] .Comments-container > div > div:has(> div + div .CommentContent) > div:has(+ div .CommentContent) *,
-        html[data-theme='dark'] .Comments-container > div > div:has(.InputLike),
-        html[data-theme='dark'] .Comments-container > div > div > div:has(.InputLike) {
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) > div > div:has(> div + div .CommentContent) > div:has(+ div .CommentContent),
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) > div > div:has(> div + div .CommentContent) > div:has(+ div .CommentContent) *,
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) > div > div:has(.InputLike),
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) > div > div > div:has(.InputLike) {
             background-color: var(--zmr-surface) !important;
             color: var(--zmr-text-secondary) !important;
             border-color: var(--zmr-border) !important;
         }
 
-        html[data-theme='dark'] .Comments-container > div > div:has(> div + div .CommentContent),
-        html[data-theme='dark'] .Comments-container *:has(> .InputLike) {
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) > div > div:has(> div + div .CommentContent),
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) *:has(> .InputLike) {
             border-color: var(--zmr-border) !important;
         }
 
-        html[data-theme='dark'] .Comments-container .InputLike,
-        html[data-theme='dark'] .Comments-container .Editable,
-        html[data-theme='dark'] .Comments-container .DraftEditor-root,
-        html[data-theme='dark'] .Comments-container .DraftEditor-editorContainer,
-        html[data-theme='dark'] .Comments-container .public-DraftEditor-content {
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) .InputLike,
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) .Editable,
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) .DraftEditor-root,
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) .DraftEditor-editorContainer,
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) .public-DraftEditor-content {
             background-color: var(--zmr-surface-raised) !important;
             color: var(--zmr-text) !important;
             border-color: var(--zmr-border) !important;
         }
 
-        html[data-theme='dark'] .Comments-container .public-DraftEditorPlaceholder-root,
-        html[data-theme='dark'] .Comments-container .public-DraftEditorPlaceholder-inner {
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) .public-DraftEditorPlaceholder-root,
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) .public-DraftEditorPlaceholder-inner {
             color: var(--zmr-text-muted) !important;
         }
 
-        html[data-theme='dark'] .Comments-container .Button--plain,
-        html[data-theme='dark'] .Comments-container .Button--grey {
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) .Button--plain,
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) .Button--grey {
             color: var(--zmr-text-muted) !important;
         }
 
-        html[data-theme='dark'] .Comments-container .Button--secondary {
+        html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) .Button--secondary {
             background-color: var(--zmr-surface-raised) !important;
             color: var(--zmr-text-secondary) !important;
             border-color: var(--zmr-border) !important;
