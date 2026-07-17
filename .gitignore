@@ -1,0 +1,33 @@
+# Local browser/CDP artifacts and captures
+.local/
+
+# AI agent and coding-assistant instructions/state
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+.agents/
+.codex/
+.claude/
+.cursor/
+.gemini/
+.aider*
+.cline/
+.continue/
+.roo/
+.windsurf/
+.github/copilot-instructions.md
+.github/instructions/
+.github/prompts/
+
+# Editor and operating-system noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Logs and local environment overrides
+*.log
+.env
+.env.*
+!.env.example
