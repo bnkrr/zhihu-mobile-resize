@@ -19,9 +19,15 @@
 
 1. 从 App Store 安装 [Userscripts for Safari](https://github.com/quoid/userscripts)。
 2. 在“设置 → App → Safari → 扩展”中启用 Userscripts，并允许它访问知乎网站。
-3. 用 Safari 打开 [脚本安装地址](https://raw.githubusercontent.com/bnkrr/zhihu-mobile-resize/main/zhihu-mobile-resize.user.js)。
+3. 用 Safari 打开 [手机屏幕适配脚本](https://raw.githubusercontent.com/bnkrr/zhihu-mobile-resize/main/zhihu-mobile-resize.user.js)。
 4. 打开 Safari 的 Userscripts 扩展菜单，按照提示安装脚本。
 5. 打开知乎，选择“请求桌面网站”，然后刷新页面。
+
+## 夜间模式（可选）
+
+另外安装 [知乎夜间模式](https://raw.githubusercontent.com/bnkrr/zhihu-mobile-resize/main/zhihu-night-mode.user.js)，即可启用知乎内置的深色主题。
+
+夜间模式和手机屏幕适配是两个独立脚本，可以分别安装和启用。需要恢复浅色主题时，在 Userscripts 中关闭夜间模式并刷新页面即可。
 
 ## 在电脑上安装
 
@@ -29,7 +35,7 @@
 
 ## 更新
 
-在 Userscripts 中打开这个脚本并点击更新按钮。扩展会检查远程版本并下载最新版。
+在 Userscripts 中打开需要更新的脚本并点击更新按钮。扩展会检查远程版本并下载最新版。
 
 ## 反馈问题
 

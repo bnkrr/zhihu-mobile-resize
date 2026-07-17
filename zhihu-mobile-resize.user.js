@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎手机屏幕适配 (Zhihu Mobile Resize)
 // @namespace    https://github.com/bnkrr/zhihu-mobile-resize
-// @version      1.5.3
+// @version      1.5.4
 // @description  修复知乎网页在手机浏览器中的超宽、遮挡和操作不便问题，同时保留桌面版内容。
 // @author       bnkrr
 // @homepageURL  https://github.com/bnkrr/zhihu-mobile-resize
@@ -52,6 +52,7 @@
                 --zh-responsive-gutter: 10px;
                 --app-width: 100%;
                 --zhc-padding-horizontal: var(--zh-responsive-gutter);
+                --zmr-surface: #fff;
             }
 
             html,
@@ -875,7 +876,7 @@
                 height: calc(100dvh - 44px) !important;
                 max-height: calc(100dvh - 44px) !important;
                 overflow: hidden !important;
-                background: #fff !important;
+                background: var(--zmr-surface) !important;
             }
 
             .Modal-content *:has(.CommentContent),
