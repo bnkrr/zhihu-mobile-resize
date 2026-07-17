@@ -12,7 +12,8 @@
     },
     {
       "name": "profile",
-      "url": "https://www.zhihu.com/people/excited-vczh",
+      "urlEnv": "ZHIHU_TEST_PROFILE_URL",
+      "localKey": "profileUrl",
       "requiredAny": [".ProfileHeader", ".Profile-main"]
     },
     {
