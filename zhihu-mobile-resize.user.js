@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎手机屏幕适配 (Zhihu Mobile Resize)
 // @namespace    https://github.com/bnkrr/zhihu-mobile-resize
-// @version      1.5.4
+// @version      1.5.5
 // @description  修复知乎网页在手机浏览器中的超宽、遮挡和操作不便问题，同时保留桌面版内容。
 // @author       bnkrr
 // @homepageURL  https://github.com/bnkrr/zhihu-mobile-resize
@@ -925,6 +925,18 @@
                 width: auto !important;
                 height: auto !important;
                 white-space: nowrap !important;
+            }
+
+            /* Inline annotation comments use a separate portal from .Modal-content.
+               Its close button normally sits outside the panel, which makes it
+               unreachable when the panel fills a narrow viewport. */
+            body > div > div > div:has(> div > button[aria-label="关闭"] > .Zi--Close)
+                > div > button[aria-label="关闭"]:has(> .Zi--Close) {
+                right: 8px !important;
+                left: auto !important;
+                z-index: 2 !important;
+                border-radius: 50% !important;
+                background: rgb(0 0 0 / 55%) !important;
             }
         }
     `;
