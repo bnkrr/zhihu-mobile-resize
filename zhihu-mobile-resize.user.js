@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎手机屏幕适配 (Zhihu Mobile Resize)
 // @namespace    https://github.com/bnkrr/zhihu-mobile-resize
-// @version      1.5.5
+// @version      1.6.0
 // @description  修复知乎网页在手机浏览器中的超宽、遮挡和操作不便问题，同时保留桌面版内容。
 // @author       bnkrr
 // @homepageURL  https://github.com/bnkrr/zhihu-mobile-resize
@@ -46,8 +46,10 @@
     document.addEventListener('DOMContentLoaded', ensureViewport, { once: true });
     window.addEventListener('load', ensureViewport, { once: true });
 
-    const css = `
-        @media screen and (max-width: 768px) {
+    const responsiveModules = [
+        {
+            name: 'foundation',
+            rules: `
             :root {
                 --zh-responsive-gutter: 10px;
                 --app-width: 100%;
@@ -74,6 +76,11 @@
             body {
                 overflow-x: clip !important;
             }
+            `,
+        },
+        {
+            name: 'shell',
+            rules: `
 
             /* Desktop header: keep its identity, but allow the center section to shrink. */
             .AppHeader {
@@ -187,6 +194,11 @@
                 display: block !important;
                 position: relative !important;
             }
+            `,
+        },
+        {
+            name: 'discovery-pages',
+            rules: `
 
             /* Home/follow feed: remove the fixed 1032/694px desktop grid. */
             .Topstory-container {
@@ -422,6 +434,11 @@
             .Topic-bar::-webkit-scrollbar {
                 display: none;
             }
+            `,
+        },
+        {
+            name: 'question-and-profile',
+            rules: `
 
             /* Question, search, profile and article pages use a single readable column. */
             .QuestionHeader,
@@ -714,6 +731,11 @@
                 max-width: 100% !important;
                 box-sizing: border-box !important;
             }
+            `,
+        },
+        {
+            name: 'column-article',
+            rules: `
 
             /* Column articles also sit inside fixed-width desktop ancestors. */
             body *:has(> .Post-NormalMain),
@@ -784,6 +806,11 @@
                 max-width: 100% !important;
                 height: auto !important;
             }
+            `,
+        },
+        {
+            name: 'shared-content',
+            rules: `
 
             .Question-mainColumn > *,
             .QuestionAnswers-answers,
@@ -854,6 +881,11 @@
                 height: auto !important;
                 transform: none !important;
             }
+            `,
+        },
+        {
+            name: 'overlays-and-editors',
+            rules: `
 
             /* Comments modal and inline reply editor. */
             body *:has(> .Modal-content),
@@ -938,8 +970,18 @@
                 border-radius: 50% !important;
                 background: rgb(0 0 0 / 55%) !important;
             }
-        }
-    `;
+            `,
+        },
+    ];
+
+    const css = responsiveModules
+        .map(({ name, rules }) => `
+            /* zhihu-mobile-resize: ${name} */
+            @media screen and (max-width: 768px) {
+                ${rules}
+            }
+        `)
+        .join('\n');
 
     function injectFallbackStyle() {
         if (!document.head || document.getElementById('zhihu-desktop-responsive')) return false;

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Maintain Zhihu Responsive"
+  short_description: "Diagnose and fix Zhihu narrow-screen regressions"
+  default_prompt: "Use $maintain-zhihu-responsive to diagnose and fix this Zhihu responsive regression."

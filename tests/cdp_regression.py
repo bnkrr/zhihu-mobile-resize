@@ -99,12 +99,12 @@ def wait_until(cdp, expression, timeout=20):
     raise TimeoutError(f"Timed out waiting for: {expression}")
 
 
-def set_viewport(cdp, width):
+def set_viewport(cdp, width, height=HEIGHT):
     cdp.command(
         "Emulation.setDeviceMetricsOverride",
         {
             "width": width,
-            "height": HEIGHT,
+            "height": height,
             "deviceScaleFactor": 1,
             "mobile": False,
         },
@@ -128,28 +128,90 @@ def resolve_case_url(case):
     return None
 
 
-def inject_scripts(cdp):
+def inject_scripts(cdp, include_night=True):
     cdp.evaluate(
         "document.getElementById('zhihu-desktop-responsive')?.remove();"
         "document.getElementById('zhihu-night-mode-fallbacks')?.remove();"
     )
+    names = ["zhihu-mobile-resize.user.js"]
+    if include_night:
+        names.append("zhihu-night-mode.user.js")
     source = "\n".join(
-        (PROJECT / name).read_text(encoding="utf-8")
-        for name in ("zhihu-mobile-resize.user.js", "zhihu-night-mode.user.js")
+        (PROJECT / name).read_text(encoding="utf-8") for name in names
     )
     cdp.evaluate(source)
     set_viewport(cdp, NARROW_WIDTH)
     # requestAnimationFrame can be indefinitely throttled when Chrome is in the background.
     cdp.evaluate("new Promise(resolve => setTimeout(resolve, 200))")
-    wait_until(
-        cdp,
-        "document.documentElement.dataset.theme === 'dark' && "
-        "document.getElementById('zhihu-night-mode-fallbacks') && "
-        "(!document.querySelector('.AppHeader') || "
-        "getComputedStyle(document.querySelector('.AppHeader')).backgroundColor !== "
-        "'rgb(255, 255, 255)')",
-        timeout=10,
-    )
+    wait_until(cdp, "document.getElementById('zhihu-desktop-responsive')", timeout=10)
+    if include_night:
+        wait_until(
+            cdp,
+            "document.documentElement.dataset.theme === 'dark' && "
+            "document.getElementById('zhihu-night-mode-fallbacks') && "
+            "(!document.querySelector('.AppHeader') || "
+            "getComputedStyle(document.querySelector('.AppHeader')).backgroundColor !== "
+            "'rgb(255, 255, 255)')",
+            timeout=10,
+        )
+
+
+RESPONSIVE_AUDIT = """
+(() => {
+    const viewportWidth = window.visualViewport?.width || innerWidth;
+    const viewportHeight = window.visualViewport?.height || innerHeight;
+    const selector = [
+        '.AppHeader', '.Topstory-container', '.Topstory-mainColumn',
+        '.HotList', '.HotItem', '.Search-container', '.SearchMain',
+        '.SearchResult-Card', '.TopicMetaCard', '.Topic-bar', '.TopicFeedList',
+        '.QuestionHeader', '.Question-mainColumn', '.ProfileHeader',
+        '.Profile-mainColumn', '.Post-NormalMain', '.Comments-container',
+        '.Modal-content'
+    ].join(',');
+    const visible = (element) => {
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        return rect.width > 0 && rect.height > 0 && style.display !== 'none' &&
+            style.visibility !== 'hidden';
+    };
+    const summarize = (element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+            tag: element.tagName,
+            classes: typeof element.className === 'string' ? element.className : '',
+            rect: [rect.left, rect.top, rect.right, rect.bottom],
+        };
+    };
+    const roots = [...document.querySelectorAll(selector)].filter(visible);
+    const outOfBounds = roots.filter((element) => {
+        if (element.closest('.SearchTabs-inner, .Topic-bar, .AppHeader nav, pre, table')) {
+            return false;
+        }
+        const rect = element.getBoundingClientRect();
+        return rect.left < -1 || rect.right > viewportWidth + 1;
+    }).slice(0, 30).map(summarize);
+    const unreachableCloseControls = [...document.querySelectorAll(
+        'button[aria-label="关闭"], button[aria-label="close" i]'
+    )].filter(visible).filter((element) => {
+        const rect = element.getBoundingClientRect();
+        return rect.right <= 0 || rect.left >= viewportWidth ||
+            rect.bottom <= 0 || rect.top >= viewportHeight;
+    }).map(summarize);
+    return {
+        viewport: {
+            innerWidth,
+            clientWidth: document.documentElement.clientWidth,
+            visualWidth: viewportWidth,
+        },
+        documentWidth: {
+            scrollWidth: document.documentElement.scrollWidth,
+            clientWidth: document.documentElement.clientWidth,
+        },
+        outOfBounds,
+        unreachableCloseControls,
+    };
+})()
+"""
 
 
 PAGE_AUDIT = f"""
@@ -254,9 +316,9 @@ COMMENT_AUDIT = f"""
 """
 
 
-def run_page(cdp, case, screenshots=False):
+def run_page(cdp, case, screenshots=False, include_night=True):
     load_desktop_dom(cdp, case["url"])
-    inject_scripts(cdp)
+    inject_scripts(cdp, include_night=include_night)
     required = json.dumps(case["requiredAny"], ensure_ascii=False)
     found = wait_until(
         cdp,
@@ -266,29 +328,58 @@ def run_page(cdp, case, screenshots=False):
     if not found:
         raise AssertionError(f"{case['name']}: no required semantic root")
     cdp.evaluate("scrollTo(0, 0)")
-    audit = cdp.evaluate(PAGE_AUDIT)
+    audit = cdp.evaluate(PAGE_AUDIT) if include_night else None
+    responsive = cdp.evaluate(RESPONSIVE_AUDIT)
     if screenshots:
         cdp.screenshot(OUTPUT / f"{case['name']}-top.png")
     cdp.evaluate("scrollTo(0, document.documentElement.scrollHeight)")
     cdp.evaluate("new Promise(resolve => setTimeout(resolve, 300))")
     if screenshots:
         cdp.screenshot(OUTPUT / f"{case['name']}-bottom.png")
+    set_viewport(cdp, DESKTOP_WIDTH)
+    cdp.evaluate("new Promise(resolve => setTimeout(resolve, 200))")
+    desktop_guard = cdp.evaluate(
+        """
+        (() => {
+            const header = document.querySelector('.AppHeader > div');
+            const style = header ? getComputedStyle(header) : null;
+            return {
+                narrowMediaMatches: matchMedia('(max-width: 768px)').matches,
+                responsiveHeaderGrid: Boolean(style && style.display === 'grid' &&
+                    style.gridTemplateRows === '52px 44px'),
+            };
+        })()
+        """
+    )
     failures = []
-    if audit["theme"] != "dark":
-        failures.append("data-theme is not dark")
-    if audit["body"]["background"] in BAD_BACKGROUNDS:
-        failures.append("body background is light")
-    if audit["lightBackgrounds"]:
-        failures.append(f"{len(audit['lightBackgrounds'])} light surfaces")
-    if audit["badText"]:
-        failures.append(f"{len(audit['badText'])} dark text nodes")
-    if audit["badLinks"]:
-        failures.append(f"{len(audit['badLinks'])} low-contrast content links")
-    if audit["linkProbeColors"] != ["rgb(85, 142, 255)", "rgb(85, 142, 255)"]:
-        failures.append("night link color probe failed")
-    if audit["documentWidth"]["scrollWidth"] > audit["documentWidth"]["clientWidth"] + 1:
+    if include_night:
+        if audit["theme"] != "dark":
+            failures.append("data-theme is not dark")
+        if audit["body"]["background"] in BAD_BACKGROUNDS:
+            failures.append("body background is light")
+        if audit["lightBackgrounds"]:
+            failures.append(f"{len(audit['lightBackgrounds'])} light surfaces")
+        if audit["badText"]:
+            failures.append(f"{len(audit['badText'])} dark text nodes")
+        if audit["badLinks"]:
+            failures.append(f"{len(audit['badLinks'])} low-contrast content links")
+        if audit["linkProbeColors"] != ["rgb(85, 142, 255)", "rgb(85, 142, 255)"]:
+            failures.append("night link color probe failed")
+    if responsive["documentWidth"]["scrollWidth"] > responsive["documentWidth"]["clientWidth"] + 1:
         failures.append("document overflows horizontally")
-    return {"case": case["name"], "audit": audit, "failures": failures}
+    if responsive["outOfBounds"]:
+        failures.append(f"{len(responsive['outOfBounds'])} semantic roots exceed viewport")
+    if responsive["unreachableCloseControls"]:
+        failures.append("a visible close control is outside the viewport")
+    if desktop_guard["narrowMediaMatches"] or desktop_guard["responsiveHeaderGrid"]:
+        failures.append("narrow responsive shell leaked into desktop width")
+    return {
+        "case": case["name"],
+        "audit": audit,
+        "responsive": responsive,
+        "desktopGuard": desktop_guard,
+        "failures": failures,
+    }
 
 
 def click_comment_button(cdp):
@@ -310,13 +401,14 @@ def click_comment_button(cdp):
     )
 
 
-def run_comments(cdp, case, screenshots=False):
+def run_comments(cdp, case, screenshots=False, include_night=True):
     load_desktop_dom(cdp, case["url"])
-    inject_scripts(cdp)
+    inject_scripts(cdp, include_night=include_night)
     if not click_comment_button(cdp):
         raise AssertionError("comments: no visible answer comment button")
     wait_until(cdp, "document.querySelector('.Comments-container .CommentContent')", 20)
     normal = cdp.evaluate(COMMENT_AUDIT)
+    normal_responsive = cdp.evaluate(RESPONSIVE_AUDIT)
     if screenshots:
         cdp.screenshot(OUTPUT / "comments-list.png")
 
@@ -345,6 +437,7 @@ def run_comments(cdp, case, screenshots=False):
         20,
     )
     deep = cdp.evaluate(COMMENT_AUDIT)
+    deep_responsive = cdp.evaluate(RESPONSIVE_AUDIT)
     if screenshots:
         cdp.screenshot(OUTPUT / "comments-expanded-replies.png")
 
@@ -356,21 +449,138 @@ def run_comments(cdp, case, screenshots=False):
     ):
         if not audit["commentCount"]:
             failures.append(f"{name}: no comments rendered")
-        if audit["badText"]:
-            failures.append(f"{name}: {len(audit['badText'])} dark text nodes")
-        if audit["lightBackgrounds"]:
-            failures.append(f"{name}: {len(audit['lightBackgrounds'])} light surfaces")
+        if include_night:
+            if audit["badText"]:
+                failures.append(f"{name}: {len(audit['badText'])} dark text nodes")
+            if audit["lightBackgrounds"]:
+                failures.append(f"{name}: {len(audit['lightBackgrounds'])} light surfaces")
     if deep["inputCount"] < 1:
         failures.append("expanded replies: reply editor missing")
     if deep["root"] != "expanded-replies":
         failures.append("expanded replies: modal audit root missing")
+    if normal_responsive["documentWidth"]["scrollWidth"] > normal_responsive["documentWidth"]["clientWidth"] + 1:
+        failures.append("comments: document overflows horizontally")
+    for name, audit in (
+        ("comments", normal_responsive),
+        ("expanded replies", deep_responsive),
+    ):
+        if audit["outOfBounds"]:
+            failures.append(f"{name}: semantic root exceeds viewport")
+        if audit["unreachableCloseControls"]:
+            failures.append(f"{name}: close control is outside the viewport")
+    def reported_comment_audit(audit):
+        if include_night:
+            return audit
+        return {
+            key: audit[key]
+            for key in ("root", "commentCount", "inputCount")
+        }
+
     return {
         "case": case["name"],
-        "normal": normal,
-        "loading": loading,
-        "expanded": deep,
+        "normal": reported_comment_audit(normal),
+        "loading": reported_comment_audit(loading),
+        "expanded": reported_comment_audit(deep),
+        "responsive": {
+            "normal": normal_responsive,
+            "expanded": deep_responsive,
+        },
         "failures": failures,
     }
+
+
+def open_annotation_comments(cdp):
+    return cdp.evaluate(
+        """
+        (() => {
+            const highlight = document.querySelector('.highlight-wrap.has-comments');
+            if (!highlight) return null;
+            highlight.scrollIntoView({block: 'center'});
+            const range = document.createRange();
+            range.selectNodeContents(highlight);
+            const selection = getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            document.dispatchEvent(new Event('selectionchange', {bubbles: true}));
+            const rect = highlight.getBoundingClientRect();
+            highlight.dispatchEvent(new MouseEvent('mouseup', {
+                bubbles: true,
+                clientX: rect.left + Math.min(30, rect.width / 2),
+                clientY: rect.top + rect.height / 2,
+            }));
+            highlight.click();
+            return true;
+        })()
+        """
+    )
+
+
+def audit_annotation_close(cdp):
+    return cdp.evaluate(
+        """
+        (() => {
+            const button = document.querySelector(
+                'button[aria-label="关闭"]:has(.Zi--Close)'
+            );
+            const rect = button.getBoundingClientRect();
+            const viewportWidth = window.visualViewport?.width || innerWidth;
+            const viewportHeight = window.visualViewport?.height || innerHeight;
+            return {
+                viewport: [viewportWidth, viewportHeight],
+                rect: [rect.left, rect.top, rect.right, rect.bottom],
+                fullyVisible: rect.left >= 0 && rect.right <= viewportWidth &&
+                    rect.top >= 0 && rect.bottom <= viewportHeight,
+                hitTarget: document.elementFromPoint(
+                    rect.left + rect.width / 2,
+                    rect.top + rect.height / 2
+                )?.closest('button') === button,
+                background: getComputedStyle(button).backgroundColor,
+            };
+        })()
+        """
+    )
+
+
+def run_annotation(cdp, case, screenshots=False):
+    load_desktop_dom(cdp, case["url"])
+    inject_scripts(cdp, include_night=False)
+    wait_until(cdp, "document.querySelector('.highlight-wrap.has-comments')", 20)
+    if not open_annotation_comments(cdp):
+        raise AssertionError("annotation: no highlighted text with comments")
+    wait_until(cdp, "document.querySelector('svg.ZDI--ChatBubble24')", 20)
+    opened = cdp.evaluate(
+        """
+        (() => {
+            const icon = document.querySelector('svg.ZDI--ChatBubble24');
+            const action = icon?.parentElement;
+            if (!action) return false;
+            action.click();
+            return true;
+        })()
+        """
+    )
+    if not opened:
+        raise AssertionError("annotation: comment action is missing")
+    wait_until(
+        cdp,
+        "document.querySelector('button[aria-label=\"关闭\"]:has(.Zi--Close)')",
+        20,
+    )
+    audits = {str(NARROW_WIDTH): audit_annotation_close(cdp)}
+    set_viewport(cdp, 390, 844)
+    cdp.evaluate("new Promise(resolve => setTimeout(resolve, 200))")
+    audits["390"] = audit_annotation_close(cdp)
+    if screenshots:
+        cdp.screenshot(OUTPUT / "annotation-comments.png")
+    failures = []
+    for width, audit in audits.items():
+        if not audit["fullyVisible"]:
+            failures.append(f"{width}px: close control is outside the viewport")
+        if not audit["hitTarget"]:
+            failures.append(f"{width}px: close control is covered by another element")
+        if audit["background"] == "rgba(0, 0, 0, 0)":
+            failures.append(f"{width}px: close control has no contrasting background")
+    return {"case": case["name"], "audits": audits, "failures": failures}
 
 
 def main():
@@ -386,9 +596,17 @@ def main():
         action="append",
         help="Run one named case; repeat for multiple cases. Defaults to all.",
     )
+    parser.add_argument(
+        "--resize-only",
+        action="store_true",
+        help="Inject only the responsive script and skip night-mode color assertions.",
+    )
     args = parser.parse_args()
     selected = set(args.case or [])
-    known = {case["name"] for case in CASES["pages"]} | {CASES["comments"]["name"]}
+    state_cases = (CASES["comments"], CASES["annotation"])
+    known = {case["name"] for case in CASES["pages"]} | {
+        case["name"] for case in state_cases
+    }
     unknown = selected - known
     if unknown:
         parser.error(f"unknown cases: {', '.join(sorted(unknown))}")
@@ -421,12 +639,27 @@ def main():
                     )
                     continue
                 results["results"].append(
-                    run_page(cdp, {**case, "url": url}, args.screenshots)
+                    run_page(
+                        cdp,
+                        {**case, "url": url},
+                        args.screenshots,
+                        include_night=not args.resize_only,
+                    )
                 )
         comment_case = CASES["comments"]
         if not selected or comment_case["name"] in selected:
             results["results"].append(
-                run_comments(cdp, comment_case, args.screenshots)
+                run_comments(
+                    cdp,
+                    comment_case,
+                    args.screenshots,
+                    include_night=not args.resize_only,
+                )
+            )
+        annotation_case = CASES["annotation"]
+        if not selected or annotation_case["name"] in selected:
+            results["results"].append(
+                run_annotation(cdp, annotation_case, args.screenshots)
             )
     finally:
         cdp.command("Network.setCacheDisabled", {"cacheDisabled": False})
