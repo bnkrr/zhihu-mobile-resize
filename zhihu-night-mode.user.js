@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎夜间模式 (Zhihu Night Mode)
 // @namespace    https://github.com/bnkrr/zhihu-mobile-resize/night-mode
-// @version      1.0.4
+// @version      1.0.5
 // @description  在知乎网页中启用内置的深色主题，可与知乎手机屏幕适配脚本独立使用。
 // @author       bnkrr
 // @homepageURL  https://github.com/bnkrr/zhihu-mobile-resize
@@ -119,6 +119,44 @@
         html[data-theme='dark'] .CommentContent.CommentContent a[href] {
             color: var(--zmr-accent) !important;
             text-decoration-color: var(--zmr-accent) !important;
+        }
+
+        /* Link cards keep light loading and card surfaces after switching themes. */
+        html[data-theme='dark'] .LinkCard.LinkCard {
+            background-color: var(--zmr-surface-raised) !important;
+            color: var(--zmr-text) !important;
+            border-color: var(--zmr-border) !important;
+        }
+
+        html[data-theme='dark'] .LinkCard .LinkCard-title {
+            color: var(--zmr-text) !important;
+        }
+
+        html[data-theme='dark'] .LinkCard .LinkCard-desc {
+            color: var(--zmr-text-secondary) !important;
+        }
+
+        html[data-theme='dark'] .LinkCard :is(.LinkCard-image--default, .loading) {
+            background-color: var(--zmr-border) !important;
+        }
+
+        /* Topic feed pins and circle recommendations use literal white surfaces. */
+        html[data-theme='dark'] .PinToolbar-actions.PinToolbar-actions {
+            background-color: var(--zmr-surface) !important;
+            color: var(--zmr-text-secondary) !important;
+            border-color: var(--zmr-border) !important;
+        }
+
+        html[data-theme='dark'] .TopicFeedItem a:has(> .ZDI--CircleClubFill24) {
+            background-color: var(--zmr-surface-raised) !important;
+            color: var(--zmr-text-secondary) !important;
+            border-color: var(--zmr-border) !important;
+        }
+
+        html[data-theme='dark'] .TopicFeedItem div:has(> img.Image-Preview + div)
+            > img.Image-Preview + div {
+            background-color: rgb(0 0 0 / 55%) !important;
+            color: var(--zmr-text) !important;
         }
 
         /* Narrow topic/question pages use an unthemed fixed "open app" header. */
