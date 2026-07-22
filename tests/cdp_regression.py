@@ -240,10 +240,18 @@ PAGE_AUDIT = f"""
     linkProbe.style.cssText = 'position:fixed;left:-10000px;top:0';
     linkProbe.innerHTML =
         '<div class="ztext"><a href="https://example.invalid/">probe</a></div>' +
-        '<div class="CommentContent"><a href="https://example.invalid/">probe</a></div>';
+        '<div class="CommentContent"><a href="https://example.invalid/">probe</a></div>' +
+        '<div class="RichText ztext"><blockquote><p><span style="color:rgb(55,58,64)">' +
+        'probe</span></p></blockquote></div>';
     document.body.appendChild(linkProbe);
     const linkProbeColors = [...linkProbe.querySelectorAll('a')]
         .map((element) => getComputedStyle(element).color);
+    const quoteProbe = linkProbe.querySelector('blockquote');
+    const quoteTextProbe = quoteProbe.querySelector('span');
+    const quoteProbeColors = {{
+        color: getComputedStyle(quoteTextProbe).color,
+        border: getComputedStyle(quoteProbe).borderLeftColor,
+    }};
     linkProbe.remove();
     return {{
         theme: document.documentElement.dataset.theme,
@@ -257,6 +265,7 @@ PAGE_AUDIT = f"""
             color: getComputedStyle(document.body).color,
         }},
         linkProbeColors,
+        quoteProbeColors,
         badText: elements
             .filter((element) => element.tagName !== 'IMG' &&
                 element.childElementCount === 0 && element.textContent.trim() &&
@@ -365,6 +374,11 @@ def run_page(cdp, case, screenshots=False, include_night=True):
             failures.append(f"{len(audit['badLinks'])} low-contrast content links")
         if audit["linkProbeColors"] != ["rgb(85, 142, 255)", "rgb(85, 142, 255)"]:
             failures.append("night link color probe failed")
+        if audit["quoteProbeColors"] != {
+            "color": "rgb(194, 198, 207)",
+            "border": "rgb(83, 88, 97)",
+        }:
+            failures.append("night quote color probe failed")
     if responsive["documentWidth"]["scrollWidth"] > responsive["documentWidth"]["clientWidth"] + 1:
         failures.append("document overflows horizontally")
     if responsive["outOfBounds"]:

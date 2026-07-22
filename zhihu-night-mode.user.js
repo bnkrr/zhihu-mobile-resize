@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎夜间模式 (Zhihu Night Mode)
 // @namespace    https://github.com/bnkrr/zhihu-mobile-resize/night-mode
-// @version      1.0.5
+// @version      1.0.6
 // @description  在知乎网页中启用内置的深色主题，可与知乎手机屏幕适配脚本独立使用。
 // @author       bnkrr
 // @homepageURL  https://github.com/bnkrr/zhihu-mobile-resize
@@ -119,6 +119,26 @@
         html[data-theme='dark'] .CommentContent.CommentContent a[href] {
             color: var(--zmr-accent) !important;
             text-decoration-color: var(--zmr-accent) !important;
+        }
+
+        /* Quotes may retain copied inline light-theme colors and an invisible border. */
+        html[data-theme='dark'] :is(
+            .RichText,
+            .QuestionRichText,
+            .Post-RichText,
+            .CommentContent
+        ) blockquote {
+            color: var(--zmr-text-secondary) !important;
+            border-color: var(--zmr-border) !important;
+        }
+
+        html[data-theme='dark'] :is(
+            .RichText,
+            .QuestionRichText,
+            .Post-RichText,
+            .CommentContent
+        ) blockquote :is(p, span, em, strong, b, i, li, h1, h2, h3, h4, h5, h6):not(a *) {
+            color: var(--zmr-text-secondary) !important;
         }
 
         /* Link cards keep light loading and card surfaces after switching themes. */
