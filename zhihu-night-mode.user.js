@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎夜间模式 (Zhihu Night Mode)
 // @namespace    https://github.com/bnkrr/zhihu-mobile-resize/night-mode
-// @version      1.0.6
+// @version      1.0.7
 // @description  在知乎网页中启用内置的深色主题，可与知乎手机屏幕适配脚本独立使用。
 // @author       bnkrr
 // @homepageURL  https://github.com/bnkrr/zhihu-mobile-resize
@@ -139,6 +139,63 @@
             .CommentContent
         ) blockquote :is(p, span, em, strong, b, i, li, h1, h2, h3, h4, h5, h6):not(a *) {
             color: var(--zmr-text-secondary) !important;
+        }
+
+        /* Code blocks keep a light background while broad rich-text rules make their text white. */
+        html[data-theme='dark'] :is(
+            .RichText,
+            .QuestionRichText,
+            .Post-RichText,
+            .CommentContent
+        ) :is(.highlight, pre) {
+            background-color: var(--zmr-surface-raised) !important;
+            color: var(--zmr-text-secondary) !important;
+            border-color: var(--zmr-border) !important;
+        }
+
+        html[data-theme='dark'] :is(
+            .RichText,
+            .QuestionRichText,
+            .Post-RichText,
+            .CommentContent
+        ) pre code,
+        html[data-theme='dark'] :is(
+            .RichText,
+            .QuestionRichText,
+            .Post-RichText,
+            .CommentContent
+        ) pre code span {
+            background-color: transparent !important;
+            color: inherit !important;
+        }
+
+        html[data-theme='dark'] :is(
+            .RichText,
+            .QuestionRichText,
+            .Post-RichText,
+            .CommentContent
+        ) .highlight :is(.k, .kc, .kd, .kn, .kp, .kr, .kt, .nc, .nt) {
+            color: var(--zmr-accent) !important;
+        }
+
+        html[data-theme='dark'] :is(
+            .RichText,
+            .QuestionRichText,
+            .Post-RichText,
+            .CommentContent
+        ) .highlight :is(.c, .c1, .cm, .cp, .cs) {
+            color: var(--zmr-text-muted) !important;
+        }
+
+        html[data-theme='dark'] :is(
+            .RichText,
+            .QuestionRichText,
+            .Post-RichText,
+            .CommentContent
+        ) :not(pre) > code {
+            background-color: var(--zmr-surface-raised) !important;
+            color: var(--zmr-text-secondary) !important;
+            border-color: var(--zmr-border) !important;
         }
 
         /* Link cards keep light loading and card surfaces after switching themes. */

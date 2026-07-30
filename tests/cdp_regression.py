@@ -242,7 +242,15 @@ PAGE_AUDIT = f"""
         '<div class="ztext"><a href="https://example.invalid/">probe</a></div>' +
         '<div class="CommentContent"><a href="https://example.invalid/">probe</a></div>' +
         '<div class="RichText ztext"><blockquote><p><span style="color:rgb(55,58,64)">' +
-        'probe</span></p></blockquote></div>';
+        'probe</span></p></blockquote></div>' +
+        '<div class="QuestionRichText RichText ztext">' +
+        '<div class="highlight" style="background-color:rgb(255,255,255)">' +
+        '<pre style="background-color:rgb(255,255,255);color:rgb(255,255,255)"><code>' +
+        '<span class="k" style="color:rgb(255,255,255)">probe</span>' +
+        '<span class="c1" style="color:rgb(255,255,255)">probe</span>' +
+        '</code></pre></div>' +
+        '<p><code style="background-color:rgb(255,255,255);color:rgb(255,255,255)">' +
+        'probe</code></p></div>';
     document.body.appendChild(linkProbe);
     const linkProbeColors = [...linkProbe.querySelectorAll('a')]
         .map((element) => getComputedStyle(element).color);
@@ -251,6 +259,15 @@ PAGE_AUDIT = f"""
     const quoteProbeColors = {{
         color: getComputedStyle(quoteTextProbe).color,
         border: getComputedStyle(quoteProbe).borderLeftColor,
+    }};
+    const codeProbeColors = {{
+        wrapperBackground: getComputedStyle(linkProbe.querySelector('.highlight')).backgroundColor,
+        preBackground: getComputedStyle(linkProbe.querySelector('pre')).backgroundColor,
+        codeColor: getComputedStyle(linkProbe.querySelector('pre code')).color,
+        keywordColor: getComputedStyle(linkProbe.querySelector('.highlight .k')).color,
+        commentColor: getComputedStyle(linkProbe.querySelector('.highlight .c1')).color,
+        inlineBackground: getComputedStyle(linkProbe.querySelector('p > code')).backgroundColor,
+        inlineColor: getComputedStyle(linkProbe.querySelector('p > code')).color,
     }};
     linkProbe.remove();
     return {{
@@ -266,6 +283,7 @@ PAGE_AUDIT = f"""
         }},
         linkProbeColors,
         quoteProbeColors,
+        codeProbeColors,
         badText: elements
             .filter((element) => element.tagName !== 'IMG' &&
                 element.childElementCount === 0 && element.textContent.trim() &&
@@ -379,6 +397,16 @@ def run_page(cdp, case, screenshots=False, include_night=True):
             "border": "rgb(83, 88, 97)",
         }:
             failures.append("night quote color probe failed")
+        if audit["codeProbeColors"] != {
+            "wrapperBackground": "rgb(40, 43, 48)",
+            "preBackground": "rgb(40, 43, 48)",
+            "codeColor": "rgb(194, 198, 207)",
+            "keywordColor": "rgb(85, 142, 255)",
+            "commentColor": "rgb(145, 150, 161)",
+            "inlineBackground": "rgb(40, 43, 48)",
+            "inlineColor": "rgb(194, 198, 207)",
+        }:
+            failures.append("night code color probe failed")
     if responsive["documentWidth"]["scrollWidth"] > responsive["documentWidth"]["clientWidth"] + 1:
         failures.append("document overflows horizontally")
     if responsive["outOfBounds"]:
