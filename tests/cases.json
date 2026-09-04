@@ -1,30 +1,80 @@
 {
   "pages": [
     {
+      "name": "home",
+      "url": "https://www.zhihu.com/",
+      "requiredAny": [".Topstory-container", ".App-main"],
+      "contentRequired": false,
+      "readyAny": [".TopstoryItem .ContentItem", ".Topstory-mainColumn .List-item"]
+    },
+    {
+      "name": "follow",
+      "url": "https://www.zhihu.com/follow",
+      "requiredAny": [".Topstory-container", ".Topstory-follow"],
+      "readyAny": [".TopstoryItem .ContentItem", ".Topstory-mainColumn .List-item"]
+    },
+    {
       "name": "hot",
       "url": "https://www.zhihu.com/hot",
-      "requiredAny": [".HotItem", ".HotList"]
+      "requiredAny": [".HotItem", ".HotList"],
+      "readyAny": [".HotItem"]
     },
     {
       "name": "question",
       "url": "https://www.zhihu.com/question/2061024906939310932",
-      "requiredAny": [".QuestionHeader", ".Question-main"]
+      "requiredAny": [".QuestionHeader", ".Question-main", ".QuestionPage", ".AnswersNavWrapper"],
+      "readyAny": [".AnswerItem", ".AnswersNavWrapper"]
     },
     {
       "name": "profile",
       "urlEnv": "ZHIHU_TEST_PROFILE_URL",
       "localKey": "profileUrl",
-      "requiredAny": [".ProfileHeader", ".Profile-main"]
+      "requiredAny": [".ProfileHeader", ".Profile-main", ".ProfileHeader-userCover", ".ProfileMain"],
+      "readyAny": [".ProfileMain", ".Profile-mainColumn"]
+    },
+    {
+      "name": "profile-answers",
+      "urlEnv": "ZHIHU_TEST_PROFILE_URL",
+      "localKey": "profileUrl",
+      "suffix": "/answers",
+      "readyTimeout": 60,
+      "requiredAny": [".ProfileHeader", ".ProfileMain", ".Profile-mainColumn"],
+      "contentRequired": false,
+      "readyAny": [".ProfileMain .List-item", ".Profile-mainColumn .ContentItem"]
+    },
+    {
+      "name": "profile-posts",
+      "urlEnv": "ZHIHU_TEST_PROFILE_URL",
+      "localKey": "profileUrl",
+      "suffix": "/posts",
+      "readyTimeout": 60,
+      "requiredAny": [".ProfileHeader", ".ProfileMain", ".Profile-mainColumn"],
+      "contentRequired": false,
+      "readyAny": [".ProfileMain .List-item", ".Profile-mainColumn .ContentItem"]
     },
     {
       "name": "search",
       "url": "https://www.zhihu.com/search?type=content&q=%E5%A4%9C%E9%97%B4%E6%A8%A1%E5%BC%8F",
-      "requiredAny": [".Search-container", ".SearchMain"]
+      "requiredAny": [".Search-container", ".SearchMain"],
+      "readyAny": [".SearchResult-Card", ".SearchMain .List-item .ContentItem"]
     },
     {
       "name": "topic",
       "url": "https://www.zhihu.com/topic/19550517/hot",
-      "requiredAny": [".TopicMetaCard", ".TopicFeedList", ".Topic-bar"]
+      "requiredAny": [".TopicMetaCard", ".TopicFeedList", ".Topic-bar"],
+      "readyAny": [".TopicFeedItem", ".TopicFeedList .List-item"]
+    },
+    {
+      "name": "column",
+      "url": "https://zhuanlan.zhihu.com/p/494984745",
+      "requiredAny": [".Post-content", ".Post-NormalMain"],
+      "readyAny": [".Post-RichText", ".Post-RichTextContainer"]
+    },
+    {
+      "name": "collection",
+      "url": "https://www.zhihu.com/collection/19764022",
+      "requiredAny": [".CollectionsDetailPage", ".CollectionDetailPageHeader"],
+      "readyAny": [".CollectionDetailPageItem", ".CollectionsDetailPage-list .List-item"]
     }
   ],
   "comments": {
@@ -33,6 +83,10 @@
   },
   "annotation": {
     "name": "annotation",
+    "url": "https://www.zhihu.com/question/2061024906939310932"
+  },
+  "interactions": {
+    "name": "interactions",
     "url": "https://www.zhihu.com/question/2061024906939310932"
   }
 }

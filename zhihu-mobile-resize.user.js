@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎手机屏幕适配 (Zhihu Mobile Resize)
 // @namespace    https://github.com/bnkrr/zhihu-mobile-resize
-// @version      1.6.0
+// @version      1.7.2
 // @description  修复知乎网页在手机浏览器中的超宽、遮挡和操作不便问题，同时保留桌面版内容。
 // @author       bnkrr
 // @homepageURL  https://github.com/bnkrr/zhihu-mobile-resize
@@ -194,6 +194,95 @@
                 display: block !important;
                 position: relative !important;
             }
+
+            /* The 2026 shell uses a lean header with a fixed 1242px inner row. */
+            .LeanAppHeaderBar,
+            .LeanAppHeaderBar > div {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+            }
+
+            .LeanAppHeaderBar > div {
+                padding-right: 52px !important;
+                padding-left: 82px !important;
+            }
+
+            .LeanAppHeaderBar > div > a[aria-label='知乎'] {
+                left: var(--zh-responsive-gutter) !important;
+            }
+
+            .LeanAppHeaderBar > div > div:has(.SearchBar),
+            .LeanAppHeaderBar > div > div:has(.SearchBar) > div,
+            .LeanAppHeaderBar div:has(> .SearchBar),
+            .LeanAppHeaderBar .SearchBar {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+            }
+
+            .LeanAppHeaderBar > div > div:has(.SearchBar) {
+                position: static !important;
+                margin: 0 !important;
+                overflow: visible !important;
+            }
+
+            /* Search injects a duplicate sticky SearchTabs row into the lean
+               header and translates the real search/profile row out of view. */
+            .LeanAppHeaderBar:has(.SearchTabs)
+                > div > div:has(.SearchBar) > div {
+                transform: none !important;
+            }
+
+            .LeanAppHeaderBar:has(.SearchTabs) .PageHeader:has(.SearchTabs) {
+                display: none !important;
+            }
+
+            .LeanAppHeaderBar > div > div:has(.SearchBar) > div > :first-child {
+                display: none !important;
+            }
+
+            .LeanAppHeaderBar > div > div:has(.SearchBar) > div > div:has(.SearchBar) {
+                width: auto !important;
+                min-width: 0 !important;
+                flex: 1 1 auto !important;
+            }
+
+            .LeanAppHeaderBar > div > div:has(.SearchBar) > div > :last-child {
+                width: 34px !important;
+                min-width: 34px !important;
+                flex: 0 0 34px !important;
+            }
+
+            .LeanAppHeaderBar > div > div:has(.SearchBar) > div > :last-child
+                > :not(:has(.AppHeader-profileEntry)) {
+                display: none !important;
+            }
+
+            .LeanAppHeaderBar > div > div:last-child:not(:has(.SearchBar)):not(:has(.AppHeader-profileEntry)) {
+                display: none !important;
+            }
+
+            .LeanAppHeaderBar .AppHeader-profileMenu {
+                position: absolute !important;
+                top: 12px !important;
+                right: var(--zh-responsive-gutter) !important;
+            }
+
+            .LeanAppHeaderBar div:has(> .AppHeader-profileMenu) {
+                position: static !important;
+                width: 34px !important;
+                min-width: 34px !important;
+            }
+
+            .LeanAppHeaderBar .AppHeader-profileMenu,
+            .LeanAppHeaderBar .AppHeader-profileEntry {
+                width: 34px !important;
+                min-width: 34px !important;
+                height: 34px !important;
+            }
             `,
         },
         {
@@ -201,6 +290,115 @@
             rules: `
 
             /* Home/follow feed: remove the fixed 1032/694px desktop grid. */
+            body *:has(> aside + div + div > div > .App-main) {
+                display: block !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+            }
+
+            body *:has(> aside + div + div > div > .App-main)
+                > :not(:has(> div > .App-main)):not(aside:has(nav a[href$='/hot'])) {
+                display: none !important;
+            }
+
+            /* Keep the redesigned primary channels after collapsing its left rail. */
+            #root aside:has(nav a[href$='/hot']) {
+                display: block !important;
+                position: sticky !important;
+                z-index: 10 !important;
+                top: 58px !important;
+                right: 0 !important;
+                left: 0 !important;
+                width: auto !important;
+                min-width: 0 !important;
+                max-width: none !important;
+                height: 46px !important;
+                background: var(--zmr-surface) !important;
+                box-sizing: border-box !important;
+            }
+
+            #root aside:has(nav a[href$='/hot']) > div:has(> nav) {
+                position: static !important;
+                width: auto !important;
+                min-width: 0 !important;
+                max-width: none !important;
+                height: 46px !important;
+            }
+
+            #root aside:has(nav a[href$='/hot']) nav {
+                display: flex !important;
+                flex-flow: row nowrap !important;
+                align-items: center !important;
+                width: auto !important;
+                min-width: 0 !important;
+                max-width: none !important;
+                height: 46px !important;
+                padding: 0 var(--zh-responsive-gutter) !important;
+                gap: 4px !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                scrollbar-width: none;
+                box-sizing: border-box !important;
+            }
+
+            #root aside:has(nav a[href$='/hot']) nav::-webkit-scrollbar {
+                display: none;
+            }
+
+            #root aside:has(nav a[href$='/hot']) nav > * {
+                flex: 0 0 auto !important;
+            }
+
+            #root aside:has(nav a[href$='/hot']) nav > a,
+            #root aside:has(nav a[href$='/hot']) nav > button,
+            #root aside:has(nav a[href$='/hot']) nav > .Popover {
+                width: auto !important;
+                min-width: max-content !important;
+                height: 42px !important;
+            }
+
+            #root aside:has(nav a[href$='/hot']) nav > a,
+            #root aside:has(nav a[href$='/hot']) nav > button {
+                display: flex !important;
+                align-items: center !important;
+                padding-right: 8px !important;
+                padding-left: 8px !important;
+            }
+
+            #root aside:has(nav a[href$='/hot']) nav > a > span:last-child,
+            #root aside:has(nav a[href$='/hot']) nav > button > span:last-child {
+                display: block !important;
+                width: auto !important;
+                min-width: max-content !important;
+                max-width: none !important;
+                margin-left: 6px !important;
+                overflow: visible !important;
+                opacity: 1 !important;
+            }
+
+            #root aside:has(nav a[href$='/hot']) nav > div:empty {
+                width: 1px !important;
+                min-width: 1px !important;
+                max-width: 1px !important;
+                height: 20px !important;
+                margin: 0 4px !important;
+            }
+
+            body *:has(> aside + div + div > div > .App-main) > div:has(> div > .App-main),
+            body *:has(> aside + div + div > div > .App-main) > div:has(> div > .App-main) > div {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+            }
+
+            body *:has(> aside + div + div > div > .App-main)
+                > div:has(> div > .App-main) > :not(:has(> .App-main)) {
+                display: none !important;
+            }
+
             .Topstory-container {
                 display: block !important;
                 width: 100% !important;
@@ -216,6 +414,9 @@
                 min-width: 0 !important;
                 max-width: 100% !important;
                 margin: 0 !important;
+                padding-right: 0 !important;
+                padding-left: 0 !important;
+                box-sizing: border-box !important;
             }
 
             .Topstory-container > :not(.Topstory-mainColumn) {
@@ -230,6 +431,20 @@
                 min-width: 0 !important;
                 max-width: 100% !important;
                 box-sizing: border-box !important;
+            }
+
+            /* The redesigned publisher cannot fit its tools and submit group on one row. */
+            .WriteArea > div > section > div > div:last-child {
+                height: auto !important;
+                flex-wrap: wrap !important;
+                row-gap: 10px !important;
+            }
+
+            .WriteArea > div > section > div > div:last-child > div:last-child {
+                width: 100% !important;
+                min-width: 0 !important;
+                flex: 1 0 100% !important;
+                justify-content: flex-end !important;
             }
 
             /* Hot list: prioritize text instead of a fixed 190px thumbnail. */
@@ -312,6 +527,7 @@
 
             /* Search: collapse the 1032/1000/980px desktop result chain. */
             .Search-container,
+            .Search-container > :has(.SearchMain),
             .SearchMain,
             .SearchMain .ListShortcut,
             .SearchMain .List,
@@ -333,8 +549,12 @@
                 padding: 10px !important;
             }
 
-            .Search-container > :not(.SearchMain) {
+            .Search-container > :not(:has(.SearchMain)) {
                 display: none !important;
+            }
+
+            .Search-container > :has(.SearchMain) {
+                display: block !important;
             }
 
             .SearchMain {
@@ -371,7 +591,71 @@
                 display: flex !important;
             }
 
+            /* Collections: collapse the 100vw main/sidebar layout to the content viewport. */
+            .CollectionsDetailPage {
+                display: block !important;
+                width: auto !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 10px var(--zh-responsive-gutter) !important;
+                box-sizing: border-box !important;
+            }
+
+            .CollectionsDetailPage-mainColumn,
+            .CollectionDetailPageHeader,
+            .CollectionsDetailPage-list,
+            .CollectionsDetailPage-list .List,
+            .CollectionsDetailPage-list .List-item,
+            .CollectionDetailPageItem,
+            .CollectionDetailPageItem-innerContainer,
+            .CollectionDetailPageItem .ContentItem {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                margin-right: 0 !important;
+                margin-left: 0 !important;
+                box-sizing: border-box !important;
+            }
+
+            .CollectionsDetailPage > :not(.CollectionsDetailPage-mainColumn) {
+                display: none !important;
+            }
+
+            .CollectionsDetailPage .Pagination {
+                display: flex !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                scrollbar-width: none;
+            }
+
+            .CollectionsDetailPage .Pagination::-webkit-scrollbar {
+                display: none;
+            }
+
+            .CollectionsDetailPage .Pagination > * {
+                flex: 0 0 auto !important;
+            }
+
             /* Topic: the desktop topic feed is a fixed 600px column. */
+            .App-main > div:has(> .Card > div > .TopicMetaCard),
+            .App-main > div:has(> .Card > div > .TopicMetaCard) > *,
+            .App-main > div:has(> .Card > div > .TopicMetaCard)
+                > .Card > div:has(> .TopicMetaCard) {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+            }
+
+            .App-main > div:has(> .Card > div > .TopicMetaCard) {
+                padding-right: var(--zh-responsive-gutter) !important;
+                padding-left: var(--zh-responsive-gutter) !important;
+            }
+
             .TopicMetaCard,
             .Topic-bar,
             .TopicFeedList,
@@ -379,9 +663,9 @@
             .TopicFeedItem,
             .TopicHotIntroItem-item,
             .TopicHot-introItem {
-                width: calc(100vw - 15px) !important;
+                width: 100% !important;
                 min-width: 0 !important;
-                max-width: calc(100vw - 15px) !important;
+                max-width: 100% !important;
                 margin-right: 0 !important;
                 margin-left: 0 !important;
                 box-sizing: border-box !important;
@@ -427,8 +711,8 @@
 
             .TopicHotIntroItem-item,
             .TopicHot-introItem {
-                width: calc(100vw - 35px) !important;
-                max-width: calc(100vw - 35px) !important;
+                width: 100% !important;
+                max-width: 100% !important;
             }
 
             .Topic-bar::-webkit-scrollbar {
@@ -478,6 +762,44 @@
                 min-width: 0 !important;
                 max-width: 100% !important;
                 box-sizing: border-box !important;
+            }
+
+            /* The redesigned profile removed the outer ProfileHeader/Profile-main classes. */
+            .App-main *:has(> .ProfileHeader-userCover),
+            .App-main *:has(> * > .ProfileHeader-userCover),
+            .App-main *:has(> .ProfileMain),
+            .App-main *:has(> * > .ProfileMain),
+            .ProfileMain,
+            .ProfileMain-header,
+            .ProfileMain .ListShortcut,
+            .ProfileMain .List,
+            .ProfileMain .List-item {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                margin-right: 0 !important;
+                margin-left: 0 !important;
+                box-sizing: border-box !important;
+            }
+
+            .App-main *:has(> .ProfileMain) {
+                padding-right: var(--zh-responsive-gutter) !important;
+                padding-left: var(--zh-responsive-gutter) !important;
+            }
+
+            .ProfileMain-tabs {
+                display: flex !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                flex-wrap: nowrap !important;
+                scrollbar-width: none;
+            }
+
+            .ProfileMain-tabs > * {
+                flex-shrink: 0 !important;
             }
 
             .ProfileHeader {
@@ -718,10 +1040,10 @@
                 white-space: nowrap !important;
             }
 
-            /* New question pages keep a hashed 1032px parent around this stable column. */
+            /* Question layouts must size against their padded parent, not the viewport. */
             .Question-mainColumn {
-                width: calc(100vw - 32px) !important;
-                max-width: calc(100vw - 32px) !important;
+                width: 100% !important;
+                max-width: 100% !important;
             }
 
             .QuestionPage *:has(> .Question-mainColumn),
@@ -730,6 +1052,51 @@
                 min-width: 0 !important;
                 max-width: 100% !important;
                 box-sizing: border-box !important;
+            }
+
+            .QuestionPage *:has(> .Question-mainColumn),
+            .QuestionPage > div:has(> .QuestionAuthor) {
+                padding-right: var(--zh-responsive-gutter) !important;
+                padding-left: var(--zh-responsive-gutter) !important;
+            }
+
+            .QuestionPage > div:has(> .QuestionAuthor)
+                > div:has(> .QuestionButtonGroup) {
+                display: flex !important;
+                width: 100% !important;
+                height: auto !important;
+                flex-wrap: wrap !important;
+                align-items: center !important;
+                gap: 10px !important;
+            }
+
+            .QuestionButtonGroup {
+                display: flex !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                flex-wrap: wrap !important;
+                align-items: center !important;
+                gap: 8px !important;
+            }
+
+            .QuestionButtonGroup .Button,
+            .QuestionButtonGroup + * > * {
+                width: auto !important;
+                height: auto !important;
+                min-height: 34px !important;
+                white-space: nowrap !important;
+            }
+
+            .QuestionButtonGroup + * {
+                display: flex !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                height: auto !important;
+                flex-wrap: wrap !important;
+                align-items: center !important;
+                gap: 8px 14px !important;
             }
             `,
         },
@@ -891,9 +1258,9 @@
             body *:has(> .Modal-content),
             body *:has(> * > .Modal-content),
             .Modal-content {
-                width: 100vw !important;
+                width: 100% !important;
                 min-width: 0 !important;
-                max-width: 100vw !important;
+                max-width: 100% !important;
                 margin-right: 0 !important;
                 margin-left: 0 !important;
                 box-sizing: border-box !important;
@@ -922,7 +1289,7 @@
             .Modal-content .CommentContent {
                 width: auto !important;
                 min-width: 0 !important;
-                max-width: calc(100vw - 74px) !important;
+                max-width: calc(100% - 74px) !important;
                 overflow-wrap: anywhere !important;
             }
 
@@ -930,7 +1297,7 @@
             .Modal-content .Editable {
                 width: auto !important;
                 min-width: 0 !important;
-                max-width: calc(100vw - 100px) !important;
+                max-width: calc(100% - 100px) !important;
                 box-sizing: border-box !important;
                 overflow-wrap: anywhere !important;
             }
@@ -959,9 +1326,50 @@
                 white-space: nowrap !important;
             }
 
+            /* The answer composer is mounted only after interaction and retains 784px. */
+            .AnswerForm,
+            .AnswerForm > *,
+            .AnswerForm .RichText--editable,
+            .AnswerForm .Editable,
+            .AnswerForm .DraftEditor-root,
+            .AnswerForm .DraftEditor-editorContainer,
+            .AnswerForm .public-DraftEditor-content {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                margin-right: 0 !important;
+                margin-left: 0 !important;
+                box-sizing: border-box !important;
+            }
+
+            .AnswerForm :is(.Toolbar, .RichText-toolbar) {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                scrollbar-width: none;
+            }
+
+            .AnswerForm :is(.Toolbar, .RichText-toolbar)::-webkit-scrollbar {
+                display: none;
+            }
+
+            .AnswerForm .AIAssistantPanelV2-container {
+                display: none !important;
+            }
+
             /* Inline annotation comments use a separate portal from .Modal-content.
                Its close button normally sits outside the panel, which makes it
                unreachable when the panel fills a narrow viewport. */
+            body > div > div > div:has(> div > button[aria-label="关闭"] > .Zi--Close)
+                > div:has(> button[aria-label="关闭"] > .Zi--Close) {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                box-sizing: border-box !important;
+            }
+
             body > div > div > div:has(> div > button[aria-label="关闭"] > .Zi--Close)
                 > div > button[aria-label="关闭"]:has(> .Zi--Close) {
                 right: 8px !important;

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎夜间模式 (Zhihu Night Mode)
 // @namespace    https://github.com/bnkrr/zhihu-mobile-resize/night-mode
-// @version      1.0.7
+// @version      1.0.11
 // @description  在知乎网页中启用内置的深色主题，可与知乎手机屏幕适配脚本独立使用。
 // @author       bnkrr
 // @homepageURL  https://github.com/bnkrr/zhihu-mobile-resize
@@ -42,6 +42,7 @@
 
         html[data-theme='dark'] .Card,
         html[data-theme='dark'] .AppHeader.AppHeader,
+        html[data-theme='dark'] .LeanAppHeaderBar,
         html[data-theme='dark'] .HotItem,
         html[data-theme='dark'] .Modal-content,
         html[data-theme='dark'] .Popover-content,
@@ -66,6 +67,45 @@
             color: var(--zmr-accent) !important;
         }
 
+        html[data-theme='dark'] .LeanAppHeaderBar {
+            background-color: var(--zmr-surface) !important;
+            color: var(--zmr-text) !important;
+            transition: none !important;
+        }
+
+        html[data-theme='dark'] .LeanAppHeaderBar :is(a, button) {
+            color: var(--zmr-text-secondary) !important;
+        }
+
+        html[data-theme='dark'] .LeanAppHeaderBar a[aria-label='知乎'] {
+            color: var(--zmr-accent) !important;
+        }
+
+        html[data-theme='dark'] .LeanAppHeaderBar :is(
+            .SearchBar,
+            .SearchBar-input,
+            .Input-wrapper
+        ) {
+            background-color: var(--zmr-surface-raised) !important;
+            color: var(--zmr-text) !important;
+            border-color: var(--zmr-border) !important;
+        }
+
+        /* The redesigned desktop home navigation keeps light-theme label colors. */
+        html[data-theme='dark'] aside:has(nav a[href$='/hot']) {
+            background-color: var(--zmr-surface) !important;
+        }
+
+        html[data-theme='dark'] aside:has(nav a[href$='/hot']) nav a,
+        html[data-theme='dark'] aside:has(nav a[href$='/hot']) nav button {
+            color: var(--zmr-text-secondary) !important;
+        }
+
+        html[data-theme='dark'] aside:has(nav a[href$='/hot']) nav a[aria-current='page'] {
+            color: var(--zmr-text) !important;
+            background-color: var(--zmr-surface-raised) !important;
+        }
+
         html[data-theme='dark'] .AppHeader .SearchBar-input.SearchBar-input,
         html[data-theme='dark'] .AppHeader .Input-wrapper.Input-wrapper,
         html[data-theme='dark'] .Select-button.Select-button {
@@ -84,10 +124,88 @@
             color: var(--zmr-text-muted) !important;
         }
 
+        html[data-theme='dark'] .Card:has(.PlaceHolder-inner),
+        html[data-theme='dark'] :is(
+            .Topstory-mainColumn,
+            .SearchMain,
+            .ProfileMain,
+            .TopicFeedList,
+            .CollectionsDetailPage-mainColumn
+        ) .PlaceHolder {
+            background-color: var(--zmr-surface) !important;
+            color: var(--zmr-text-muted) !important;
+        }
+
+        html[data-theme='dark'] .PlaceHolder-inner > :not(svg) {
+            background-color: var(--zmr-surface-raised) !important;
+        }
+
+        html[data-theme='dark'] .PlaceHolder svg {
+            background-color: var(--zmr-surface) !important;
+        }
+
+        html[data-theme='dark'] .PlaceHolder svg rect:first-child {
+            fill: var(--zmr-surface) !important;
+        }
+
+        html[data-theme='dark'] .PlaceHolder svg rect:not(:first-child) {
+            fill: var(--zmr-surface-raised) !important;
+        }
+
+        /* The redesigned feed/profile loading state no longer uses PlaceHolder. */
+        html[data-theme='dark'] .skeleton.skeleton {
+            background-color: var(--zmr-surface) !important;
+            color: var(--zmr-text-muted) !important;
+        }
+
+        html[data-theme='dark'] .skeleton__line.skeleton__line {
+            background-color: var(--zmr-surface-raised) !important;
+        }
+
         html[data-theme='dark'] .ProfileMain-header button:has(.ZDI--Search24) {
             background-color: var(--zmr-surface-raised) !important;
             color: var(--zmr-text-secondary) !important;
             transition: none !important;
+        }
+
+        html[data-theme='dark'] .AnswerForm,
+        html[data-theme='dark'] .AnswerForm :is(
+            .Sticky,
+            .RichText--editable,
+            .Editable,
+            .DraftEditor-root,
+            .DraftEditor-editorContainer,
+            .public-DraftEditor-content,
+            .Toolbar,
+            .RichText-toolbar
+        ) {
+            background-color: var(--zmr-surface) !important;
+            color: var(--zmr-text) !important;
+            border-color: var(--zmr-border) !important;
+        }
+
+        html[data-theme='dark'] .AnswerForm .Sticky > div {
+            background-color: var(--zmr-surface) !important;
+            color: var(--zmr-text) !important;
+            border-color: var(--zmr-border) !important;
+        }
+
+        html[data-theme='dark'] .AnswerAdd > div,
+        html[data-theme='dark'] .AnswerAdd .Sticky,
+        html[data-theme='dark'] .AnswerFormEditorContainer > :last-child {
+            background-color: var(--zmr-surface) !important;
+            color: var(--zmr-text-secondary) !important;
+            border-color: var(--zmr-border) !important;
+            transition: none !important;
+        }
+
+        html[data-theme='dark'] .SearchMain b {
+            transition: none !important;
+        }
+
+        /* The redesigned home publisher keeps its prompt in a light-theme text color. */
+        html[data-theme='dark'] .WriteArea > div > section > div > :first-child {
+            color: var(--zmr-text-muted) !important;
         }
 
         /* Zhihu's narrow hot-list DOM currently keeps white card backgrounds in dark mode. */
@@ -119,6 +237,35 @@
         html[data-theme='dark'] .CommentContent.CommentContent a[href] {
             color: var(--zmr-accent) !important;
             text-decoration-color: var(--zmr-accent) !important;
+        }
+
+        html[data-theme='dark'] #root a.ztext-mention-hook.ztext-mention-hook {
+            background-color: var(--zmr-surface-raised) !important;
+            color: var(--zmr-accent) !important;
+            border-color: var(--zmr-border) !important;
+            transition: none !important;
+        }
+
+        /* Inline annotation comments live in a portal outside the article shell. */
+        html[data-theme='dark'] body > div > div
+            > div:has(> div > button[aria-label='关闭'] > .Zi--Close)
+            > div:has(> button[aria-label='关闭'] > .Zi--Close) {
+            background-color: var(--zmr-surface) !important;
+            color: var(--zmr-text) !important;
+            border-color: var(--zmr-border) !important;
+        }
+
+        html[data-theme='dark'] body > div > div
+            > div:has(> div > button[aria-label='关闭'] > .Zi--Close)
+            > div:has(> button[aria-label='关闭'] > .Zi--Close)
+            :is(p, span, button) {
+            color: var(--zmr-text-secondary) !important;
+        }
+
+        html[data-theme='dark'] body > div > div
+            > div:has(> div > button[aria-label='关闭'] > .Zi--Close)
+            > div:has(> button[aria-label='关闭'] > .Zi--Close) a {
+            color: var(--zmr-accent) !important;
         }
 
         /* Quotes may retain copied inline light-theme colors and an invisible border. */
@@ -215,6 +362,52 @@
 
         html[data-theme='dark'] .LinkCard :is(.LinkCard-image--default, .loading) {
             background-color: var(--zmr-border) !important;
+        }
+
+        /* Column related-answer cards do not consume Zhihu's dark theme variables. */
+        html[data-theme='dark'] .Post-NormalMain .pc-article-answer {
+            background-color: var(--zmr-surface-raised) !important;
+            color: var(--zmr-text) !important;
+            border-color: var(--zmr-border) !important;
+            transition: none !important;
+        }
+
+        html[data-theme='dark'] .Post-NormalMain :is(
+            .pc-article-answer-card-title,
+            .pc-article-answer-card-footer-user-info-name
+        ) {
+            color: var(--zmr-text) !important;
+        }
+
+        html[data-theme='dark'] .Post-NormalMain :is(
+            .pc-article-answer-card-desc-text,
+            .pc-article-answer-card-footer-close-text
+        ) {
+            color: var(--zmr-text-secondary) !important;
+        }
+
+        /* This recommendation block currently has no semantic class; the narrow
+           Post-NormalMain ancestry limits the impact and regression tests cover hash churn. */
+        html[data-theme='dark'] #root .Post-NormalMain > div > .css-34mzkj {
+            background-color: var(--zmr-surface-raised) !important;
+            color: var(--zmr-text) !important;
+            transition: none !important;
+        }
+
+        html[data-theme='dark'] #root .Post-NormalMain .css-34mzkj :is(a, div, span) {
+            color: var(--zmr-text-secondary) !important;
+            transition: none !important;
+        }
+
+        html[data-theme='dark'] #root .Post-NormalMain .css-34mzkj .Button--primary,
+        html[data-theme='dark'] #root .Post-NormalMain .css-34mzkj .Button--primary * {
+            color: #fff !important;
+        }
+
+        html[data-theme='dark'] #root .CollectionsDetailPage
+            .Pagination .PaginationButton.PaginationButton {
+            color: var(--zmr-text-secondary) !important;
+            transition: none !important;
         }
 
         /* Topic feed pins and circle recommendations use literal white surfaces. */
