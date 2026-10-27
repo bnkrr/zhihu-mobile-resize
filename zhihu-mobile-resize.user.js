@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎手机屏幕适配 (Zhihu Mobile Resize)
 // @namespace    https://github.com/bnkrr/zhihu-mobile-resize
-// @version      1.8.0
+// @version      1.9.1
 // @description  修复知乎网页在手机浏览器中的超宽、遮挡和操作不便问题，同时保留桌面版内容。
 // @author       bnkrr
 // @homepageURL  https://github.com/bnkrr/zhihu-mobile-resize
@@ -9,7 +9,7 @@
 // @updateURL    https://raw.githubusercontent.com/bnkrr/zhihu-mobile-resize/main/zhihu-mobile-resize.meta.js
 // @downloadURL  https://raw.githubusercontent.com/bnkrr/zhihu-mobile-resize/main/zhihu-mobile-resize.user.js
 // @match        https://*.zhihu.com/*
-// @grant        GM.addStyle
+// @grant        none
 // @inject-into  content
 // @run-at       document-start
 // @noframes
@@ -19,31 +19,58 @@
     'use strict';
 
     const VIEWPORT_CONTENT = 'width=device-width, initial-scale=1, viewport-fit=cover';
+    let viewportObserver;
 
     function ensureViewport() {
         if (!document.head) return false;
 
-        let viewport = document.querySelector('meta[name="viewport"]');
-        if (!viewport) {
-            viewport = document.createElement('meta');
+        const viewports = [...document.querySelectorAll('meta[name="viewport"]')];
+        if (!viewports.length) {
+            const viewport = document.createElement('meta');
             viewport.name = 'viewport';
             document.head.appendChild(viewport);
+            viewports.push(viewport);
         }
 
-        if (viewport.content !== VIEWPORT_CONTENT) {
-            viewport.content = VIEWPORT_CONTENT;
+        for (const viewport of viewports) {
+            if (viewport.content !== VIEWPORT_CONTENT) {
+                viewport.content = VIEWPORT_CONTENT;
+            }
         }
         return true;
     }
 
-    if (!ensureViewport()) {
+    function startViewport() {
+        if (!ensureViewport()) return false;
+        if (document.readyState === 'loading') {
+            // The parser may add Zhihu's own viewport after ours. Watch only
+            // the head during parsing, not the whole page for its lifetime.
+            viewportObserver = new MutationObserver((records) => {
+                if (records.some((record) =>
+                    record.target.matches?.('meta[name="viewport"]') ||
+                    [...record.addedNodes].some((node) =>
+                        node.matches?.('meta[name="viewport"]'))
+                )) ensureViewport();
+            });
+            viewportObserver.observe(document.head, {
+                childList: true, subtree: true,
+                attributes: true, attributeFilter: ['content', 'name'],
+            });
+        }
+        return true;
+    }
+
+    if (!startViewport()) {
         const headObserver = new MutationObserver(() => {
-            if (ensureViewport()) headObserver.disconnect();
+            if (startViewport()) headObserver.disconnect();
         });
         headObserver.observe(document, { childList: true, subtree: true });
     }
 
-    document.addEventListener('DOMContentLoaded', ensureViewport, { once: true });
+    document.addEventListener('DOMContentLoaded', () => {
+        viewportObserver?.disconnect();
+        ensureViewport();
+    }, { once: true });
     window.addEventListener('load', ensureViewport, { once: true });
 
     const responsiveModules = [
@@ -433,20 +460,6 @@
                 box-sizing: border-box !important;
             }
 
-            /* The redesigned publisher cannot fit its tools and submit group on one row. */
-            .WriteArea > div > section > div > div:last-child {
-                height: auto !important;
-                flex-wrap: wrap !important;
-                row-gap: 10px !important;
-            }
-
-            .WriteArea > div > section > div > div:last-child > div:last-child {
-                width: 100% !important;
-                min-width: 0 !important;
-                flex: 1 0 100% !important;
-                justify-content: flex-end !important;
-            }
-
             /* Hot list: prioritize text instead of a fixed 190px thumbnail. */
             .HotList,
             .HotList-list {
@@ -641,6 +654,13 @@
             }
 
             /* Topic: the desktop topic feed is a fixed 600px column. */
+            .App-main > div:has(> div > .Card > div > .TopicMetaCard),
+            .App-main > div:has(> div > .Card > div > .TopicMetaCard)
+                > div:has(> .Card > div > .TopicMetaCard),
+            .App-main > div:has(> div > .Card > div > .TopicMetaCard)
+                > div:has(> .Card > div > .TopicMetaCard) > .Card,
+            .App-main > div:has(> div > .Card > div > .TopicMetaCard)
+                > div:has(> .Card > div > .TopicMetaCard) > .Card > div,
             .App-main > div:has(> .Card > div > .TopicMetaCard),
             .App-main > div:has(> .Card > div > .TopicMetaCard) > *,
             .App-main > div:has(> .Card > div > .TopicMetaCard)
@@ -651,9 +671,15 @@
                 box-sizing: border-box !important;
             }
 
+            .App-main > div:has(> div > .Card > div > .TopicMetaCard),
             .App-main > div:has(> .Card > div > .TopicMetaCard) {
                 padding-right: var(--zh-responsive-gutter) !important;
                 padding-left: var(--zh-responsive-gutter) !important;
+            }
+
+            .App-main > div:has(> div > .Card > div > .TopicMetaCard)
+                > :not(:has(> .Card > div > .TopicMetaCard)) {
+                display: none !important;
             }
 
             .TopicMetaCard,
@@ -972,6 +998,14 @@
                 box-sizing: border-box !important;
             }
 
+            /* The current question header already has outer gutter padding.
+               Reset its inherited desktop inner offsets instead of stacking them. */
+            .QuestionHeader-content,
+            .QuestionHeader-main {
+                padding-right: 0 !important;
+                padding-left: 0 !important;
+            }
+
             .QuestionHeader-side,
             .QuestionHeader-sideColumn,
             .Question-sideColumn,
@@ -1046,18 +1080,28 @@
                 max-width: 100% !important;
             }
 
-            .QuestionPage *:has(> .Question-mainColumn),
-            .QuestionPage *:has(> * > .Question-mainColumn) {
+            .QuestionPage > :has(.Question-mainColumn),
+            .QuestionPage > :has(.Question-mainColumn) > *,
+            .QuestionPage .ListShortcut:has(> .Question-mainColumn),
+            .QuestionPage .Question-mainColumn {
                 width: 100% !important;
                 min-width: 0 !important;
                 max-width: 100% !important;
+                margin-right: 0 !important;
+                margin-left: 0 !important;
                 box-sizing: border-box !important;
             }
 
-            .QuestionPage *:has(> .Question-mainColumn),
+            .QuestionPage > :has(.Question-mainColumn),
             .QuestionPage > div:has(> .QuestionAuthor) {
                 padding-right: var(--zh-responsive-gutter) !important;
                 padding-left: var(--zh-responsive-gutter) !important;
+            }
+
+            .QuestionPage > :has(.Question-mainColumn) > *,
+            .QuestionPage .ListShortcut:has(> .Question-mainColumn) {
+                padding-right: 0 !important;
+                padding-left: 0 !important;
             }
 
             .QuestionPage > div:has(> .QuestionAuthor)
@@ -1097,6 +1141,106 @@
                 flex-wrap: wrap !important;
                 align-items: center !important;
                 gap: 8px 14px !important;
+            }
+            `,
+        },
+        {
+            name: 'creator-center',
+            rules: `
+
+            /* Creator center is a fixed 1000px sidebar/main dashboard on desktop. */
+            .Creator,
+            .Creator > :first-child,
+            .Creator-mainColumn,
+            .CreatorHome,
+            .CreatorHome > div,
+            .CreatorHome > div > div {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                margin-right: 0 !important;
+                margin-left: 0 !important;
+                box-sizing: border-box !important;
+            }
+
+            .Creator {
+                display: block !important;
+                padding: 10px !important;
+            }
+
+            /* Keep creator navigation reachable in a compact local scroller. */
+            .Creator > :first-child {
+                height: 180px !important;
+                margin-bottom: 10px !important;
+                overflow: hidden !important;
+            }
+
+            .Creator > :first-child .Sticky,
+            .Creator > :first-child .Sticky > div,
+            .Creator > :first-child .Sticky > div > div,
+            .Creator > :first-child .Sticky > div > div > div {
+                position: static !important;
+                top: auto !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                height: 180px !important;
+                max-height: 180px !important;
+                box-sizing: border-box !important;
+            }
+
+            .Creator > :first-child .Sticky > div > div {
+                overflow-x: hidden !important;
+                overflow-y: auto !important;
+            }
+
+            .Creator-mainColumn {
+                padding: 0 !important;
+                overflow: visible !important;
+            }
+
+            .CreatorHome > div {
+                display: block !important;
+            }
+
+            .CreatorHome > div > div,
+            .CreatorHome > div > div:first-child > div,
+            .CreatorHome > div > div:first-child > div > div,
+            .CreatorHome > div > div:first-child > div > div > div,
+            .CreatorHome > div > div:last-child > div,
+            .WriteArea {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100% !important;
+                margin-right: 0 !important;
+                margin-left: 0 !important;
+                box-sizing: border-box !important;
+            }
+
+            .CreatorHome > div > div:first-child > div:not(.WriteArea) {
+                display: block !important;
+            }
+
+            .CreatorHome > div > div:first-child > div:not(.WriteArea) > div,
+            .CreatorHome > div > div:last-child > div {
+                margin-bottom: 10px !important;
+            }
+
+            .CreatorHome > div > div:last-child {
+                margin-top: 10px !important;
+            }
+
+            .Creator .Banner-swiper-wrapper {
+                max-width: 100% !important;
+                overflow: hidden !important;
+            }
+
+            .Creator :is(img, video, canvas, svg) {
+                max-width: 100% !important;
+            }
+
+            .CreatorIndex-BottomBox {
+                display: none !important;
             }
             `,
         },
@@ -1179,6 +1323,20 @@
             name: 'shared-content',
             rules: `
 
+            /* The home and creator publishers need two rows at narrow widths. */
+            .WriteArea > div > section > div > div:last-child {
+                height: auto !important;
+                flex-wrap: wrap !important;
+                row-gap: 10px !important;
+            }
+
+            .WriteArea > div > section > div > div:last-child > div:last-child {
+                width: 100% !important;
+                min-width: 0 !important;
+                flex: 1 0 100% !important;
+                justify-content: flex-end !important;
+            }
+
             .Question-mainColumn > *,
             .QuestionAnswers-answers,
             .AnswersNavWrapper,
@@ -1255,8 +1413,9 @@
             rules: `
 
             /* Comments modal and inline reply editor. */
-            body *:has(> .Modal-content),
-            body *:has(> * > .Modal-content),
+            .Modal-wrapper,
+            .Modal,
+            .Modal-inner,
             .Modal-content {
                 width: 100% !important;
                 min-width: 0 !important;
@@ -1266,16 +1425,33 @@
                 box-sizing: border-box !important;
             }
 
-            body *:has(> .Modal-content),
-            body *:has(> * > .Modal-content) {
+            .Modal-wrapper,
+            .Modal,
+            .Modal-inner {
                 overflow-x: hidden !important;
             }
 
             .Modal-content {
+                height: auto !important;
+                max-height: calc(100dvh - 24px) !important;
+                overflow-x: hidden !important;
+                overflow-y: auto !important;
+                background: var(--zmr-surface) !important;
+            }
+
+            .Modal-content:has(.CommentContent) {
                 height: calc(100dvh - 44px) !important;
                 max-height: calc(100dvh - 44px) !important;
                 overflow: hidden !important;
-                background: var(--zmr-surface) !important;
+            }
+
+            .Modal-closeButton {
+                top: 8px !important;
+                right: 8px !important;
+                left: auto !important;
+                z-index: 3 !important;
+                border-radius: 50% !important;
+                background: rgb(0 0 0 / 55%) !important;
             }
 
             .Modal-content *:has(.CommentContent),
@@ -1329,6 +1505,11 @@
             /* The answer composer is mounted only after interaction and retains 784px. */
             .AnswerForm,
             .AnswerForm > *,
+            .AnswerFormEditorContainer,
+            .AnswerFormEditorContainer > *,
+            .AnswerFormEditorContainer > * > *,
+            .AnswerForm .AnswerForm-editor,
+            .AnswerForm .AnswerForm-container,
             .AnswerForm .RichText--editable,
             .AnswerForm .Editable,
             .AnswerForm .DraftEditor-root,
@@ -1340,6 +1521,11 @@
                 margin-right: 0 !important;
                 margin-left: 0 !important;
                 box-sizing: border-box !important;
+            }
+
+            .AnswerFormEditorContainer {
+                padding-right: 0 !important;
+                padding-left: 0 !important;
             }
 
             .AnswerForm :is(.Toolbar, .RichText-toolbar) {
@@ -1382,43 +1568,101 @@
         },
     ];
 
-    const css = responsiveModules
-        .map(({ name, rules }) => `
+    const COMMON_MODULES = new Set([
+        'foundation',
+        'shell',
+        'shared-content',
+        'overlays-and-editors',
+    ]);
+    const ROUTE_STYLE_ID = 'zhihu-desktop-responsive-route';
+
+    function routeModuleNames() {
+        const path = location.pathname;
+        if (location.hostname === 'zhuanlan.zhihu.com' && /^\/p\//.test(path)) {
+            return new Set(['column-article']);
+        }
+        if (/^\/creator(?:\/|$)/.test(path)) return new Set(['creator-center']);
+        if (/^\/(?:question|people)\//.test(path)) {
+            return new Set(['question-and-profile']);
+        }
+        if (
+            path === '/' ||
+            /^\/(?:follow|hot|search|topic|collection)(?:\/|$)/.test(path)
+        ) {
+            return new Set(['discovery-pages']);
+        }
+        return new Set();
+    }
+
+    function wrapModules(modules) {
+        return modules.map(({ name, rules }) => `
             /* zhihu-mobile-resize: ${name} */
             @media screen and (max-width: 768px) {
                 ${rules}
             }
         `)
         .join('\n');
+    }
 
-    function injectFallbackStyle() {
-        if (!document.head || document.getElementById('zhihu-desktop-responsive')) return false;
+    const css = wrapModules(
+        responsiveModules.filter(({ name }) => COMMON_MODULES.has(name))
+    );
+
+    function routeCss() {
+        const names = routeModuleNames();
+        return wrapModules(
+            responsiveModules.filter(({ name }) => names.has(name))
+        );
+    }
+
+    // Keep CSS on the document-start path. Some managers implement GM.addStyle
+    // through an asynchronous extension API that waits until document_idle.
+    function injectStyle() {
+        if (document.getElementById('zhihu-desktop-responsive')) return true;
+        const parent = document.head || document.documentElement;
+        if (!parent) return false;
         const style = document.createElement('style');
         style.id = 'zhihu-desktop-responsive';
         style.textContent = css;
-        document.head.appendChild(style);
+        parent.appendChild(style);
         return true;
     }
 
-    function injectFallbackStyleWhenReady() {
-        if (injectFallbackStyle()) return;
+    function injectStyleWhenReady() {
+        if (injectStyle()) return;
 
         const styleObserver = new MutationObserver(() => {
-            if (injectFallbackStyle()) styleObserver.disconnect();
+            if (injectStyle()) styleObserver.disconnect();
         });
-        styleObserver.observe(document, { childList: true, subtree: true });
+        styleObserver.observe(document, { childList: true });
     }
 
-    if (typeof GM !== 'undefined' && typeof GM.addStyle === 'function') {
-        try {
-            const result = GM.addStyle(css);
-            if (result && typeof result.catch === 'function') {
-                result.catch(injectFallbackStyleWhenReady);
-            }
-        } catch {
-            injectFallbackStyleWhenReady();
+    function syncRouteStyle() {
+        const parent = document.head || document.documentElement;
+        if (!parent) return false;
+        let style = document.getElementById(ROUTE_STYLE_ID);
+        if (!style) {
+            style = document.createElement('style');
+            style.id = ROUTE_STYLE_ID;
+            parent.appendChild(style);
         }
-    } else {
-        injectFallbackStyleWhenReady();
+        const nextCss = routeCss();
+        if (style.textContent !== nextCss) style.textContent = nextCss;
+        return true;
     }
+
+    function syncRouteStyleWhenReady() {
+        if (syncRouteStyle()) return;
+        const routeStyleObserver = new MutationObserver(() => {
+            if (syncRouteStyle()) routeStyleObserver.disconnect();
+        });
+        routeStyleObserver.observe(document, { childList: true });
+    }
+
+    injectStyleWhenReady();
+    syncRouteStyleWhenReady();
+    window.addEventListener('popstate', syncRouteStyle);
+    window.addEventListener('pageshow', syncRouteStyle);
+    window.navigation?.addEventListener('currententrychange', syncRouteStyle);
+
 })();

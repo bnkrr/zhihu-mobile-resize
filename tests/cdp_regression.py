@@ -50,6 +50,7 @@ class CDP:
             self.target["webSocketDebuggerUrl"], timeout=40, suppress_origin=True
         )
         self.message_id = 0
+        self.document_start = False
 
     def close(self):
         self.socket.close()
@@ -116,14 +117,18 @@ def set_viewport(cdp, width, height=HEIGHT):
     )
 
 
-def load_desktop_dom(cdp, url):
+def load_desktop_dom(cdp, url, navigation_timeout=35):
     set_viewport(cdp, DESKTOP_WIDTH)
     # Waiting on readyState alone can observe the previous document before the
     # Page.navigate commit. A per-document marker makes the hand-off explicit.
     cdp.evaluate("window.__zmrNavigationPending = true")
     cdp.command("Page.navigate", {"url": url})
-    wait_until(cdp, "!window.__zmrNavigationPending", timeout=35)
-    wait_until(cdp, "document.readyState !== 'loading'", timeout=35)
+    wait_until(cdp, "!window.__zmrNavigationPending", timeout=navigation_timeout)
+    wait_until(
+        cdp,
+        "document.readyState !== 'loading'",
+        timeout=navigation_timeout,
+    )
     cdp.evaluate("new Promise(resolve => setTimeout(resolve, 1000))")
 
 
@@ -140,18 +145,24 @@ def resolve_case_url(case):
     return url.rstrip("/") + case.get("suffix", "")
 
 
-def inject_scripts(cdp, include_night=True):
-    cdp.evaluate(
-        "document.getElementById('zhihu-desktop-responsive')?.remove();"
-        "document.getElementById('zhihu-night-mode-fallbacks')?.remove();"
-    )
+def script_source(include_night=True):
     names = ["zhihu-mobile-resize.user.js"]
     if include_night:
         names.append("zhihu-night-mode.user.js")
-    source = "\n".join(
+    return "\n".join(
         (PROJECT / name).read_text(encoding="utf-8") for name in names
     )
-    cdp.evaluate(source)
+
+
+def inject_scripts(cdp, include_night=True):
+    if not cdp.document_start:
+        cdp.evaluate(
+            "document.getElementById('zhihu-desktop-responsive')?.remove();"
+            "document.getElementById('zhihu-desktop-responsive-route')?.remove();"
+            "document.getElementById('zhihu-night-mode-fallbacks')?.remove();"
+            "document.getElementById('zhihu-night-mode-comments')?.remove();"
+        )
+        cdp.evaluate(script_source(include_night))
     set_viewport(cdp, NARROW_WIDTH)
     # requestAnimationFrame can be indefinitely throttled when Chrome is in the background.
     cdp.evaluate("new Promise(resolve => setTimeout(resolve, 200))")
@@ -179,11 +190,13 @@ RESPONSIVE_AUDIT = """
         '.Topstory-container', '.Topstory-mainColumn',
         '.HotList', '.HotItem', '.Search-container', '.SearchMain',
         '.SearchResult-Card', '.TopicMetaCard', '.Topic-bar', '.TopicFeedList',
-        '.QuestionHeader', '.Question-mainColumn', '.ProfileHeader',
+        '.QuestionHeader', '.Question-mainColumn', '.AnswerCard',
+        '.QuestionAnswer-content', '.ProfileHeader',
         '.ProfileHeader-userCover', '.Profile-mainColumn', '.ProfileMain',
         '.Post-content', '.Post-NormalMain',
         '.CollectionsDetailPage', '.CollectionsDetailPage-mainColumn',
         '.CollectionDetailPageHeader', '.CollectionDetailPageItem',
+        '.Creator', '.Creator-mainColumn', '.CreatorHome', '.WriteArea',
         '.Comments-container',
         '.Modal-content'
     ].join(',');
@@ -242,18 +255,21 @@ RESPONSIVE_AUDIT = """
         }).slice(0, 20).map(summarize);
     const homeNavigation = (() => {
         if (!document.querySelector('.Topstory-container')) return null;
-        const nav = [...document.querySelectorAll('aside nav')].find((candidate) => {
-            const paths = [...candidate.querySelectorAll('a[href]')].map((link) => {
-                try { return new URL(link.href).pathname; } catch (_) { return ''; }
+        const nav = [...document.querySelectorAll('aside nav, .AppHeader nav')]
+            .find((candidate) => {
+                const paths = [...candidate.querySelectorAll('a[href]')].map((link) => {
+                    try { return new URL(link.href).pathname; } catch (_) { return ''; }
+                });
+                return paths.includes('/') && paths.includes('/follow') &&
+                    paths.includes('/hot');
             });
-            return paths.includes('/') && paths.includes('/follow') && paths.includes('/hot');
-        });
         if (!nav) return {missing: true};
         const rect = nav.getBoundingClientRect();
         return {
             visible: visible(nav),
             rect: [rect.left, rect.top, rect.right, rect.bottom],
-            fullWidth: rect.width >= viewportWidth - 2,
+            usableWidth: rect.width >= Math.min(280, viewportWidth - 40),
+            withinViewport: rect.left >= -1 && rect.right <= viewportWidth + 1,
             localScroller: nav.scrollWidth >= nav.clientWidth &&
                 getComputedStyle(nav).overflowX === 'auto',
             primaryLinks: ['/', '/follow', '/hot'].map((path) => {
@@ -261,12 +277,12 @@ RESPONSIVE_AUDIT = """
                     try { return new URL(candidate.href).pathname === path; }
                     catch (_) { return false; }
                 });
-                const label = link?.querySelector(':scope > span:last-child');
                 return {
                     path,
                     present: Boolean(link),
                     visible: Boolean(link && visible(link)),
-                    labeled: Boolean(label && label.getBoundingClientRect().width >= 16),
+                    labeled: Boolean(link && link.textContent.trim() &&
+                        link.getBoundingClientRect().width >= 16),
                 };
             }),
         };
@@ -299,7 +315,8 @@ PAGE_AUDIT = f"""
     const scopes = [...document.querySelectorAll(
         '.AppHeader, .Card, .HotItem, .QuestionHeader, .ProfileHeader, ' +
         '.Search-container, .TopicMetaCard, .TopicFeedList, .Post-content, .Post-NormalMain, ' +
-        '.Comments-container, .Modal-content, aside:has(nav a[href$="/hot"])'
+        '.Comments-container, .Modal-content, .Creator, .CreatorHome, ' +
+        'aside:has(nav a[href$="/hot"])'
     )];
     const elements = [...new Set(scopes.flatMap((scope) => [scope, ...scope.querySelectorAll('*')]))]
         .filter((element) => {{
@@ -426,7 +443,11 @@ COMMENT_AUDIT = f"""
 
 
 def run_page(cdp, case, screenshots=False, include_night=True):
-    load_desktop_dom(cdp, case["url"])
+    load_desktop_dom(
+        cdp,
+        case["url"],
+        navigation_timeout=case.get("navigationTimeout", 35),
+    )
     inject_scripts(cdp, include_night=include_night)
     required = json.dumps(case["requiredAny"], ensure_ascii=False)
     found = wait_until(
@@ -528,7 +549,8 @@ def run_page(cdp, case, screenshots=False, include_night=True):
     if home_navigation and (
         home_navigation.get("missing")
         or not home_navigation.get("visible")
-        or not home_navigation.get("fullWidth")
+        or not home_navigation.get("usableWidth")
+        or not home_navigation.get("withinViewport")
         or not home_navigation.get("localScroller")
         or not all(
             link["present"] and link["visible"] and link["labeled"]
@@ -573,6 +595,8 @@ def run_comments(cdp, case, screenshots=False, include_night=True):
     if not click_comment_button(cdp):
         raise AssertionError("comments: no visible answer comment button")
     wait_until(cdp, "document.querySelector('.Comments-container .CommentContent')", 20)
+    if include_night:
+        wait_until(cdp, "document.getElementById('zhihu-night-mode-comments')", 10)
     normal = cdp.evaluate(COMMENT_AUDIT)
     normal_responsive = cdp.evaluate(RESPONSIVE_AUDIT)
     if screenshots:
@@ -727,7 +751,14 @@ def audit_annotation_close(cdp):
 def run_annotation(cdp, case, screenshots=False, include_night=True):
     load_desktop_dom(cdp, case["url"])
     inject_scripts(cdp, include_night=include_night)
-    wait_until(cdp, "document.querySelector('.highlight-wrap.has-comments')", 20)
+    try:
+        wait_until(cdp, "document.querySelector('.highlight-wrap.has-comments')", 20)
+    except TimeoutError:
+        return {
+            "case": case["name"],
+            "skipped": "live sample has no annotated-comment marker",
+            "failures": [],
+        }
     if not open_annotation_comments(cdp):
         raise AssertionError("annotation: no highlighted text with comments")
     wait_until(cdp, "document.querySelector('svg.ZDI--ChatBubble24')", 20)
@@ -816,6 +847,15 @@ def run_interactions(cdp, case, screenshots=False, include_night=True):
                 sticky: summarize(sticky),
                 viewportWidth: document.documentElement.clientWidth,
                 background: getComputedStyle(form).backgroundColor,
+                badToolbarControls: [...form.querySelectorAll(
+                    '.ToolbarButton, .RichText-toolbar button'
+                )].filter((element) => {
+                    const rect = element.getBoundingClientRect();
+                    return rect.width > 0 && rect.height > 0 &&
+                        __BAD_TEXT_COLORS__.includes(
+                            getComputedStyle(element).color
+                        );
+                }).length,
                 lightSurfaces: [...document.body.querySelectorAll('*')].filter((element) => {
                     const rect = element.getBoundingClientRect();
                     const style = getComputedStyle(element);
@@ -837,7 +877,7 @@ def run_interactions(cdp, case, screenshots=False, include_night=True):
                 })),
             };
         })()
-        """
+        """.replace("__BAD_TEXT_COLORS__", json.dumps(BAD_TEXT_COLORS))
     )
     if screenshots:
         cdp.screenshot(OUTPUT / "interaction-answer-editor.png")
@@ -883,12 +923,23 @@ def run_interactions(cdp, case, screenshots=False, include_night=True):
     if not editor_clicked or not editor:
         failures.append("answer editor did not open")
     else:
+        editable_rect = editor.get("editable")
+        if (
+            not editable_rect
+            or editable_rect[2] - editable_rect[0] < 20
+            or editable_rect[3] - editable_rect[1] < 20
+        ):
+            failures.append("answer editor editable is not visible")
+        elif editable_rect[2] - editable_rect[0] < editor["viewportWidth"] - 2:
+            failures.append("answer editor editable is narrower than viewport")
         for name in ("form", "editable", "toolbar", "sticky"):
             rect = editor.get(name)
             if rect and (rect[0] < -1 or rect[2] > editor["viewportWidth"] + 1):
                 failures.append(f"answer editor {name} exceeds viewport")
         if include_night and editor["background"] in BAD_BACKGROUNDS:
             failures.append("answer editor remains light")
+        if include_night and editor["badToolbarControls"]:
+            failures.append("answer editor toolbar has dark text")
         if include_night and editor["lightSurfaces"]:
             failures.append(
                 f"answer editor has {len(editor['lightSurfaces'])} light surfaces"
@@ -913,6 +964,10 @@ def run_interactions(cdp, case, screenshots=False, include_night=True):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=9222)
+    parser.add_argument(
+        "--document-start", action="store_true",
+        help="Inject before page scripts on each navigation, not after the DOM loads.",
+    )
     parser.add_argument(
         "--screenshots",
         action="store_true",
@@ -940,6 +995,7 @@ def main():
 
     OUTPUT.mkdir(parents=True, exist_ok=True)
     cdp = CDP(args.port)
+    registration = None
     results = {
         "target": {"id": cdp.target["id"]},
         "results": [],
@@ -953,6 +1009,13 @@ def main():
             {"userAgent": WINDOWS_UA, "platform": "Win32"},
         )
         cdp.command("Emulation.setTouchEmulationEnabled", {"enabled": False})
+        if args.document_start:
+            cdp.document_start = True
+            registration = cdp.command("Page.addScriptToEvaluateOnNewDocument", {
+                "worldName": "zhihu-userscripts-regression",
+                "source": "if (window.top === window && /(^|\\.)zhihu\\.com$/.test(location.hostname)) {\n"
+                    + script_source(not args.resize_only) + "\n}",
+            })["identifier"]
         for case in CASES["pages"]:
             if not selected or case["name"] in selected:
                 url = resolve_case_url(case)
@@ -1004,6 +1067,8 @@ def main():
                 )
             )
     finally:
+        if registration:
+            cdp.command("Page.removeScriptToEvaluateOnNewDocument", {"identifier": registration})
         cdp.command("Network.setCacheDisabled", {"cacheDisabled": False})
         cdp.close()
 

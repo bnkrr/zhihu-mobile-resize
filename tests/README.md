@@ -15,11 +15,26 @@ uv run --with websocket-client python tests/cdp_regression.py --case comments
 uv run --with websocket-client python tests/cdp_regression.py --case annotation
 uv run --with websocket-client python tests/cdp_regression.py --case hot --case question
 uv run --with websocket-client python tests/cdp_regression.py --resize-only
+uv run --with websocket-client python tests/cdp_regression.py --document-start
 ```
 
 页面矩阵和固定样本 URL 位于 `tests/cases.json`。测试会保持 Windows 桌面 UA，先以桌面宽度加载 DOM，再切换到 `403 × 730` 的窄视口并注入脚本。批注弹层还会额外在 `390 × 844` 下检查关闭按钮，普通页面完成窄屏审计后会回到桌面宽度确认规则未泄漏。
 
 默认同时注入屏幕适配和夜间模式。维护响应式脚本时可使用 `--resize-only`，将布局不变量与夜间配色失败分开检查。
+
+响应式脚本只加载公共规则和当前路由对应的页面模块；回归测试会在每次导航后重新注入，并确认窄屏规则不会泄漏到桌面宽度。
+
+修改启动逻辑时，增加 `--document-start`：通过隔离世界在页面解析前执行实际脚本，后续审计不再重新注入样式，以验证它们不会被知乎稍后加载的 CSS 覆盖。仍先以桌面宽度加载页面，再缩窄视口，保持桌面 DOM。
+
+另外运行确定性的慢资源启动测试：
+
+```bash
+uv run --with websocket-client python tests/startup_regression.py
+uv run --with websocket-client python tests/startup_regression.py --script resize
+uv run --with websocket-client python tests/startup_regression.py --script night
+```
+
+这个测试复用第一个知乎标签，通过 CDP 拦截提供完全人工构造的页面，不发送该测试页面请求，也不复制登录页面内容。脚本在 `<html>` 尚不存在时执行；模拟的 `GM.addStyle` 永远不返回，页面的一个解析阻塞资源被挂起，最后以超时结束。测试在 `DOMContentLoaded` 之前检查样式、列宽、深色背景与 viewport，模拟站点后续添加或改写 viewport，并检查资源失败后的主题恢复和重复注入。在 `403 × 730`、`390 × 844` 下分别运行，最后恢复原页面；报告和可选截图仅保存在 `.local/test-results/`。这验证的是脚本启动逻辑，不等同于 iOS Safari 扩展端到端测试。
 
 作者页不在仓库中保存具体账号。可以临时通过环境变量提供：
 
@@ -42,7 +57,8 @@ ZHIHU_TEST_PROFILE_URL='https://www.zhihu.com/people/example' \
 
 - 新旧首页 shell、顶栏搜索和头像入口均适配窄屏
 - 新版主页左侧频道导航在窄屏下转换为可横向滚动的频道栏
-- 关注流、搜索、话题、专栏文章和公开收藏页包含真实内容后再执行窄屏审计
+- 关注流、搜索、话题、专栏文章、公开收藏页和创作中心包含真实内容后再执行窄屏审计
+- 问题聚合页与单答案页分别检查固定宽度链和重复水平页边距
 - 报告单独记录 `contentReady`；新版主页推荐流和作者子页偶发接口空壳时仍审计语义框架、加载态、布局和配色，不把上游超时误报成 CSS 回归
 - 页面语义根节点仍然存在
 - 主要页面模板没有超出视觉视口
@@ -57,8 +73,9 @@ ZHIHU_TEST_PROFILE_URL='https://www.zhihu.com/people/example' \
 - 深层回复的加载骨架和计数标题使用夜间配色
 - 普通评论和深层回复没有浅色背景或不可读的深色文字
 - 深层回复编辑器仍然存在
-- 文内批注评论能够打开，关闭按钮完整可见且没有被遮挡，夜间表面与文字可读
-- 回答编辑器可以打开并完整收缩到内容视口，分享菜单可见且不越界
+- 文内批注评论能够打开，关闭按钮完整可见且没有被遮挡，夜间表面与文字可读；固定样本暂时没有批注标记时明确跳过
+- 回答编辑器可以打开并完整收缩到内容视口，工具栏夜间文字可读，分享菜单可见且不越界
+- 创作中心主栏、导航和活动弹窗可达，浅色卡片与文字使用夜间配色
 - 可选的页面顶部、真实底部和评论弹层截图
 
 默认不截图；需要视觉检查时传入 `--screenshots`。报告和截图写入 `.local/test-results/`，不会进入 Git。结构化报告不记录页面 URL、标题或文本摘录，测试也不会读取或保存 Cookie、Token。

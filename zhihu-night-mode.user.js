@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         知乎夜间模式 (Zhihu Night Mode)
 // @namespace    https://github.com/bnkrr/zhihu-mobile-resize/night-mode
-// @version      1.1.0
+// @version      1.2.1
 // @description  在知乎网页中启用内置的深色主题，可与知乎手机屏幕适配脚本独立使用。
 // @author       bnkrr
 // @homepageURL  https://github.com/bnkrr/zhihu-mobile-resize
@@ -9,7 +9,7 @@
 // @updateURL    https://raw.githubusercontent.com/bnkrr/zhihu-mobile-resize/main/zhihu-night-mode.meta.js
 // @downloadURL  https://raw.githubusercontent.com/bnkrr/zhihu-mobile-resize/main/zhihu-night-mode.user.js
 // @match        https://*.zhihu.com/*
-// @grant        GM.addStyle
+// @grant        none
 // @inject-into  content
 // @run-at       document-start
 // @noframes
@@ -20,6 +20,7 @@
 
     const DARK_THEME = 'dark';
     const STYLE_ID = 'zhihu-night-mode-fallbacks';
+    const COMMENT_STYLE_ID = 'zhihu-night-mode-comments';
     const css = `
         :root[data-theme='dark'] {
             --zmr-surface: var(--MapUIFrame10A_dark, #212429);
@@ -169,6 +170,8 @@
         }
 
         html[data-theme='dark'] .AnswerForm,
+        html[data-theme='dark'] .AnswerFormEditorContainer,
+        html[data-theme='dark'] .AnswerFormEditorContainer > *,
         html[data-theme='dark'] .AnswerForm :is(
             .Sticky,
             .RichText--editable,
@@ -190,6 +193,15 @@
             border-color: var(--zmr-border) !important;
         }
 
+        html[data-theme='dark'] .AnswerForm :is(.ToolbarButton, .Button--plain) {
+            color: var(--zmr-text-secondary) !important;
+        }
+
+        html[data-theme='dark'] .AnswerForm .Button--primary,
+        html[data-theme='dark'] .AnswerForm .Button--primary * {
+            color: #fff !important;
+        }
+
         html[data-theme='dark'] .AnswerAdd > div,
         html[data-theme='dark'] .AnswerAdd .Sticky,
         html[data-theme='dark'] .AnswerFormEditorContainer > :last-child {
@@ -206,6 +218,73 @@
         /* The redesigned home publisher keeps its prompt in a light-theme text color. */
         html[data-theme='dark'] .WriteArea > div > section > div > :first-child {
             color: var(--zmr-text-muted) !important;
+        }
+
+        /* Creator center ships its own light-only CSS-in-JS palette. */
+        html[data-theme='dark'] .Creator,
+        html[data-theme='dark'] .Creator > :first-child,
+        html[data-theme='dark'] .CreatorHome,
+        html[data-theme='dark'] .CreatorHome .WriteArea {
+            background-color: var(--zmr-surface) !important;
+            color: var(--zmr-text-secondary) !important;
+            border-color: var(--zmr-border) !important;
+        }
+
+        html[data-theme='dark'] .Creator :is(div, span, p, a, button) {
+            color: var(--zmr-text-secondary) !important;
+            border-color: var(--zmr-border) !important;
+        }
+
+        html[data-theme='dark'] .Creator :is(h1, h2, h3, h4, strong) {
+            color: var(--zmr-text) !important;
+        }
+
+        html[data-theme='dark'] .CreatorHome > div > div:first-child
+            > div:not(.WriteArea) > div,
+        html[data-theme='dark'] .CreatorHome > div > div:first-child
+            > div:not(.WriteArea) > div > div,
+        html[data-theme='dark'] .CreatorHome > div > div:last-child > div,
+        html[data-theme='dark'] .CreatorHome > div > div:last-child > div > div {
+            background-color: var(--zmr-surface) !important;
+            color: var(--zmr-text-secondary) !important;
+            border-color: var(--zmr-border) !important;
+        }
+
+        html[data-theme='dark'] .CreatorHome :is(
+            .Input-wrapper,
+            .Select-button,
+            [role='button']
+        ) {
+            background-color: var(--zmr-surface-raised) !important;
+            color: var(--zmr-text-secondary) !important;
+            border-color: var(--zmr-border) !important;
+        }
+
+        /* Creator dashboard tiles have neither semantic classes nor theme variables.
+           Keep this hash list scoped to .Creator; the creator regression case detects churn. */
+        html[data-theme='dark'] .Creator :is(
+            .css-13uu85k,
+            .css-qbngl8,
+            .css-1ms3yqq,
+            .css-tzviga,
+            .css-1e31h8y,
+            .css-nnul91,
+            .css-16t5hun,
+            .css-1o20ku1,
+            .css-1hmn20z,
+            .css-1nrjoni,
+            .css-y15jlc,
+            .css-y1y8eh,
+            .css-1p4cunc
+        ) {
+            background-color: var(--zmr-surface-raised) !important;
+            color: var(--zmr-text-secondary) !important;
+            border-color: var(--zmr-border) !important;
+        }
+
+        html[data-theme='dark'] .Creator .Button--primary,
+        html[data-theme='dark'] .Creator .Button--primary * {
+            color: #fff !important;
         }
 
         /* Zhihu's narrow hot-list DOM currently keeps white card backgrounds in dark mode. */
@@ -404,6 +483,26 @@
             color: #fff !important;
         }
 
+        /* The same unthemed recommendation block is embedded after a single answer. */
+        html[data-theme='dark'] #root .AnswerItem .RichContent .css-34mzkj {
+            background-color: var(--zmr-surface-raised) !important;
+            color: var(--zmr-text) !important;
+            transition: none !important;
+        }
+
+        html[data-theme='dark'] #root .AnswerItem .RichContent .css-34mzkj
+            :is(a, div, span) {
+            color: var(--zmr-text-secondary) !important;
+            transition: none !important;
+        }
+
+        html[data-theme='dark'] #root .AnswerItem .RichContent .css-34mzkj
+            .Button--primary,
+        html[data-theme='dark'] #root .AnswerItem .RichContent .css-34mzkj
+            .Button--primary * {
+            color: #fff !important;
+        }
+
         html[data-theme='dark'] #root .CollectionsDetailPage
             .Pagination .PaginationButton.PaginationButton {
             color: var(--zmr-text-secondary) !important;
@@ -429,6 +528,17 @@
             color: var(--zmr-text) !important;
         }
 
+        /* Poll cards in the topic feed currently expose only generated classes. */
+        html[data-theme='dark'] .TopicFeedList :is(.css-124uj0t, .css-1wxpzcq) {
+            background-color: var(--zmr-surface-raised) !important;
+            color: var(--zmr-text-secondary) !important;
+            border-color: var(--zmr-border) !important;
+        }
+
+        html[data-theme='dark'] .TopicFeedList .css-1yeyx0 {
+            color: var(--zmr-text) !important;
+        }
+
         /* Narrow topic/question pages use an unthemed fixed "open app" header. */
         html[data-theme='dark'] body.Body--Mobile .App-main > div > div:first-child {
             background-color: var(--zmr-surface) !important;
@@ -439,6 +549,11 @@
             color: var(--MapText02A_dark, #fff) !important;
         }
 
+    `;
+
+    /* Keep relational comment selectors out of the main stylesheet. They are
+       expensive on long feeds and are needed only after a comment surface mounts. */
+    const commentCss = `
         /* The current comments UI keeps several light-theme literals after data-theme changes. */
         html[data-theme='dark'] :is(.Comments-container, .Modal-content:has(.CommentContent)) {
             background-color: var(--zmr-surface) !important;
@@ -537,7 +652,9 @@
         root.style.colorScheme = DARK_THEME;
     }
 
-    function injectFallbackStyle() {
+    // Insert directly: an asynchronous GM.addStyle implementation can defer
+    // visible styles until document_idle even with @run-at document-start.
+    function injectStyle() {
         if (document.getElementById(STYLE_ID)) return true;
         const parent = document.head || document.documentElement;
         if (!parent) return false;
@@ -549,35 +666,60 @@
         return true;
     }
 
-    function injectFallbackStyleWhenReady() {
-        if (injectFallbackStyle()) return;
-
-        const styleObserver = new MutationObserver(() => {
-            if (injectFallbackStyle()) styleObserver.disconnect();
-        });
-        styleObserver.observe(document, { childList: true, subtree: true });
+    function hasCommentSurface(root = document) {
+        if (root.nodeType === Node.ELEMENT_NODE) {
+            const element = root;
+            if (element.matches('.Comments-container, .CommentContent')) return true;
+        }
+        return Boolean(root.querySelector?.(
+            '.Comments-container, .Modal-content .CommentContent'
+        ));
     }
 
-    enableDarkTheme();
+    function injectCommentStyle() {
+        if (document.getElementById(COMMENT_STYLE_ID)) return true;
+        if (!hasCommentSurface()) return false;
 
-    if (typeof GM !== 'undefined' && typeof GM.addStyle === 'function') {
-        try {
-            const result = GM.addStyle(css);
-            if (result && typeof result.catch === 'function') {
-                result.catch(injectFallbackStyleWhenReady);
-            }
-        } catch {
-            injectFallbackStyleWhenReady();
-        }
-    } else {
-        injectFallbackStyleWhenReady();
+        const parent = document.head || document.documentElement;
+        if (!parent) return false;
+        const style = document.createElement('style');
+        style.id = COMMENT_STYLE_ID;
+        style.textContent = commentCss;
+        parent.appendChild(style);
+        return true;
     }
 
     const themeObserver = new MutationObserver(enableDarkTheme);
-    themeObserver.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['data-theme'],
-    });
+
+    function startNightMode() {
+        const root = document.documentElement;
+        if (!root) return false;
+        enableDarkTheme();
+        injectStyle();
+        themeObserver.observe(root, {
+            attributes: true,
+            attributeFilter: ['data-theme'],
+        });
+        return true;
+    }
+
+    // document-start may run before <html>, not just before <head>.
+    if (!startNightMode()) {
+        const rootObserver = new MutationObserver(() => {
+            if (startNightMode()) rootObserver.disconnect();
+        });
+        rootObserver.observe(document, { childList: true });
+    }
+
+    if (!injectCommentStyle()) {
+        const commentObserver = new MutationObserver((records) => {
+            const found = records.some((record) =>
+                [...record.addedNodes].some((node) => hasCommentSurface(node))
+            );
+            if (found && injectCommentStyle()) commentObserver.disconnect();
+        });
+        commentObserver.observe(document, { childList: true, subtree: true });
+    }
 
     document.addEventListener('DOMContentLoaded', enableDarkTheme, { once: true });
     window.addEventListener('pageshow', enableDarkTheme);
